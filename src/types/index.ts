@@ -1,6 +1,7 @@
 export interface Watering {
   id: string
-  date: string        // "YYYY-MM-DD"
+  date: string                    // "YYYY-MM-DD"
+  status: 'watered' | 'rain'     // 水やり済み or 雨でやらなかった
   by_name: string
   note: string | null
   created_at: string
@@ -8,8 +9,9 @@ export interface Watering {
 
 export interface Shift {
   id: string
-  date: string        // "YYYY-MM-DD"
-  names: string[]
+  date: string                    // "YYYY-MM-DD"
+  morning_names: string[]         // 朝担当
+  evening_names: string[]         // 夜担当
   created_at: string
 }
 
@@ -19,6 +21,6 @@ export interface Vegetable {
   by_name: string
   note: string | null
   image_path: string
-  day: string         // "YYYY-MM-DD"
+  day: string                     // "YYYY-MM-DD"
   created_at: string
 }

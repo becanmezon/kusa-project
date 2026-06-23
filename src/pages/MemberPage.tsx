@@ -7,15 +7,10 @@ import { WateringHistory } from '../components/WateringHistory'
 import { getSavedName, today, tomorrow } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import {
-  fetchWaterings,
-  upsertWatering,
-  deleteWateringByDate,
+  fetchWaterings, upsertWatering, deleteWateringByDate,
   fetchShifts,
-  fetchVegetables,
-  insertVegetable,
-  deleteVegetable,
-  uploadVegetableImage,
-  getVegetableImageUrl,
+  fetchVegetables, insertVegetable, deleteVegetable,
+  uploadVegetableImage, getVegetableImageUrl,
   buildWateringHistory,
 } from '../lib/db'
 import type { Watering, Shift, Vegetable } from '../types'
@@ -28,22 +23,20 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'history', label: '履歴',   icon: <History size={20} /> },
 ]
 
-/** 直近 days 日前の "YYYY-MM-DD" を返す */
 function daysAgo(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() - n)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 export function MemberPage() {
-  const [userName, setUserName] = useState<string | null>(getSavedName() || null)
-  const [tab, setTab] = useState<Tab>('today')
-
-  const [waterings,   setWaterings]   = useState<Watering[]>([])
-  const [shifts,      setShifts]      = useState<Shift[]>([])
-  const [vegetables,  setVegetables]  = useState<Vegetable[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [error,       setError]       = useState<string | null>(null)
+  const [userName,   setUserName]   = useState<string | null>(getSavedName() || null)
+  const [tab,        setTab]        = useState<Tab>('today')
+  const [waterings,  setWaterings]  = useState<Watering[]>([])
+  const [shifts,     setShifts]     = useState<Shift[]>([])
+  const [vegetables, setVegetables] = useState<Vegetable[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState<string | null>(null)
 
   const todayStr    = today()
   const tomorrowStr = tomorrow()
@@ -51,60 +44,49 @@ export function MemberPage() {
   const todayShift    = shifts.find(s => s.date === todayStr) ?? null
   const tomorrowShift = shifts.find(s => s.date === tomorrowStr) ?? null
 
-  // ── 初回データ取得 ───────────────────────────────────────────
+  // ── 初回データ取得 ──────────────────────────────────────────
   const loadAll = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     try {
       const [w, s, v] = await Promise.all([
         fetchWaterings(daysAgo(14), todayStr),
-        fetchShifts(daysAgo(1), daysAgo(-7)), // 昨日〜1週間後
+        fetchShifts(daysAgo(1), daysAgo(-7)),
         fetchVegetables(),
       ])
-      setWaterings(w)
-      setShifts(s)
-      setVegetables(v)
+      setWaterings(w); setShifts(s); setVegetables(v)
     } catch (e) {
       console.error(e)
-      setError('データの取得に失敗しました。ページを再読み込みしてください。')
+      setError('データの取得に失敗しました。再読み込みしてください。')
     } finally {
       setLoading(false)
     }
   }, [todayStr])
 
-  useEffect(() => {
-    if (userName) loadAll()
-  }, [userName, loadAll])
+  useEffect(() => { if (userName) loadAll() }, [userName, loadAll])
 
-  // ── Realtime 購読（waterings と vegetables の変更を自動反映） ──
+  // ── Realtime 購読 ────────────────────────────────────────────
   useEffect(() => {
     if (!userName) return
-
-    const channel = supabase
+    const ch = supabase
       .channel('kusa-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'waterings' },
-        () => {
-          // 変更を検知したら水やりデータを再取得
-          fetchWaterings(daysAgo(14), todayStr).then(setWaterings).catch(console.error)
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'vegetables' },
-        () => {
-          fetchVegetables().then(setVegetables).catch(console.error)
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
+        fetchWaterings(daysAgo(14), todayStr).then(setWaterings).catch(console.error)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vegetables' }, () => {
+        fetchVegetables().then(setVegetables).catch(console.error)
+      })
       .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    return () => { supabase.removeChannel(ch) }
   }, [userName, todayStr])
 
-  // ── 水やり記録 ────────────────────────────────────────────────
+  // ── ハンドラ ────────────────────────────────────────────────
   const handleWater = async (note: string) => {
-    const saved = await upsertWatering(todayStr, userName!, note || null)
+    const saved = await upsertWatering(todayStr, userName!, note || null, 'watered')
+    setWaterings(prev => [...prev.filter(w => w.date !== todayStr), saved])
+  }
+
+  const handleRain = async () => {
+    const saved = await upsertWatering(todayStr, userName!, null, 'rain')
     setWaterings(prev => [...prev.filter(w => w.date !== todayStr), saved])
   }
 
@@ -113,9 +95,8 @@ export function MemberPage() {
     setWaterings(prev => prev.filter(w => w.date !== todayStr))
   }
 
-  // ── 野菜写真 ──────────────────────────────────────────────────
   const handleVegUpload = async (file: File, name: string, note: string) => {
-    const imagePath = await uploadVegetableImage(file)     // 圧縮 → Storage
+    const imagePath = await uploadVegetableImage(file)
     const veg = await insertVegetable(name, userName!, note || null, imagePath, todayStr)
     setVegetables(prev => [veg, ...prev])
   }
@@ -125,10 +106,10 @@ export function MemberPage() {
     setVegetables(prev => prev.filter(v => v.id !== veg.id))
   }
 
-  // ── 名前未設定 ────────────────────────────────────────────────
+  // ── 名前未設定 ───────────────────────────────────────────────
   if (!userName) return <NameModal onSave={setUserName} />
 
-  // ── ローディング ──────────────────────────────────────────────
+  // ── ローディング ─────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
@@ -146,7 +127,7 @@ export function MemberPage() {
     )
   }
 
-  // ── エラー ────────────────────────────────────────────────────
+  // ── エラー ───────────────────────────────────────────────────
   if (error) {
     return (
       <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
@@ -157,10 +138,7 @@ export function MemberPage() {
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="text-center">
             <p className="text-terra-500 font-medium mb-3">{error}</p>
-            <button
-              onClick={loadAll}
-              className="bg-leaf-500 text-white px-6 py-2 rounded-xl font-bold"
-            >
+            <button onClick={loadAll} className="bg-leaf-500 text-white px-6 py-2 rounded-xl font-bold">
               再読み込み
             </button>
           </div>
@@ -196,9 +174,10 @@ export function MemberPage() {
           <TodayWatering
             userName={userName}
             todayWatering={todayWatering}
-            tomorrowShift={tomorrowShift}
             todayShift={todayShift}
+            tomorrowShift={tomorrowShift}
             onWater={handleWater}
+            onRain={handleRain}
             onUndo={handleUndo}
           />
         )}

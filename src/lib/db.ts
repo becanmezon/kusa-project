@@ -21,10 +21,11 @@ export async function upsertWatering(
   date: string,
   by_name: string,
   note: string | null,
+  status: 'watered' | 'rain' = 'watered',
 ): Promise<Watering> {
   const { data, error } = await supabase
     .from('waterings')
-    .upsert({ date, by_name, note }, { onConflict: 'date' })
+    .upsert({ date, by_name, note, status }, { onConflict: 'date' })
     .select()
     .single()
   if (error) throw error
@@ -53,10 +54,14 @@ export async function fetchShifts(fromDate?: string, toDate?: string): Promise<S
 }
 
 /** シフトを登録（date がユニークなので upsert で上書き可） */
-export async function upsertShift(date: string, names: string[]): Promise<Shift> {
+export async function upsertShift(
+  date: string,
+  morning_names: string[],
+  evening_names: string[],
+): Promise<Shift> {
   const { data, error } = await supabase
     .from('shifts')
-    .upsert({ date, names }, { onConflict: 'date' })
+    .upsert({ date, morning_names, evening_names }, { onConflict: 'date' })
     .select()
     .single()
   if (error) throw error

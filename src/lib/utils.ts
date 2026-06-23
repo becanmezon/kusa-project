@@ -25,6 +25,17 @@ export function formatTime(isoStr: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+/**
+ * 今日の月に基づいて表示すべき担当枠を返す
+ * - 7〜9月: 朝・夜の両方
+ * - それ以外（6月など）: 朝のみ
+ * 「今日の日付」を基準にする仕様
+ */
+export function getActiveSlots(): ('morning' | 'evening')[] {
+  const month = new Date().getMonth() + 1 // 1〜12
+  return month >= 7 && month <= 9 ? ['morning', 'evening'] : ['morning']
+}
+
 /** localStorage から名前を取得 */
 export function getSavedName(): string {
   return localStorage.getItem('kusa_user_name') ?? ''

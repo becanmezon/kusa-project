@@ -22,8 +22,8 @@ export function AdminPage() {
       .finally(() => setLoading(false))
   }, [authed])
 
-  const handleSave = async (date: string, names: string[]) => {
-    const saved = await upsertShift(date, names)
+  const handleSave = async (date: string, morning: string[], evening: string[]) => {
+    const saved = await upsertShift(date, morning, evening)
     setShifts(prev => {
       const exists = prev.some(s => s.date === date)
       return exists
