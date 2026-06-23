@@ -7,15 +7,20 @@ interface Props {
 }
 
 export function NameModal({ onSave }: Props) {
-  const [input, setInput] = useState('')
+  const [selected, setSelected] = useState('')
+  const [freeInput, setFreeInput] = useState('')
 
-  const handleSelect = (name: string) => {
-    saveName(name)
-    onSave(name)
+  const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const name = e.target.value
+    setSelected(name)
+    if (name) {
+      saveName(name)
+      onSave(name)
+    }
   }
 
   const handleFreeInput = () => {
-    const name = input.trim()
+    const name = freeInput.trim()
     if (!name) return
     saveName(name)
     onSave(name)
@@ -30,18 +35,17 @@ export function NameModal({ onSave }: Props) {
           <p className="text-sm text-soil-500 mt-1">あなたは誰ですか？</p>
         </div>
 
-        {/* メンバー候補チップ */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        {/* プルダウン選択 */}
+        <select
+          value={selected}
+          onChange={handleSelect}
+          className="w-full border border-soil-200 rounded-lg px-3 py-3 text-soil-700 bg-white focus:outline-none focus:ring-2 focus:ring-leaf-500 mb-4 text-base"
+        >
+          <option value="">── 名前を選ぶ ──</option>
           {MEMBERS.map(name => (
-            <button
-              key={name}
-              onClick={() => handleSelect(name)}
-              className="px-3 py-1.5 rounded-full bg-white border border-soil-200 text-sm text-soil-700 font-medium active:scale-95 transition-transform hover:border-leaf-400 hover:text-leaf-600"
-            >
-              {name}
-            </button>
+            <option key={name} value={name}>{name}</option>
           ))}
-        </div>
+        </select>
 
         {/* 区切り */}
         <div className="flex items-center gap-2 mb-3">
@@ -54,15 +58,15 @@ export function NameModal({ onSave }: Props) {
         <div className="flex gap-2">
           <input
             type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
+            value={freeInput}
+            onChange={e => setFreeInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleFreeInput()}
             placeholder="名前を入力..."
             className="flex-1 border border-soil-200 rounded-lg px-3 py-2 text-sm text-soil-700 bg-white focus:outline-none focus:ring-2 focus:ring-leaf-500"
           />
           <button
             onClick={handleFreeInput}
-            disabled={!input.trim()}
+            disabled={!freeInput.trim()}
             className="bg-leaf-500 text-white font-bold px-4 py-2 rounded-lg disabled:opacity-40 text-sm"
           >
             決定
