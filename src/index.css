@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-leaf-50: #f0f7e8;
+  --color-leaf-100: #ddefcc;
+  --color-leaf-200: #bfdf9e;
+  --color-leaf-300: #97c966;
+  --color-leaf-400: #72af3a;
+  --color-leaf-500: #4F7A2E;
+  --color-leaf-600: #3d5f24;
+  --color-leaf-700: #2e471b;
+  --color-leaf-800: #1f3012;
+  --color-leaf-900: #0f1809;
+
+  --color-soil-50: #f5f2ef;
+  --color-soil-100: #e8e0d8;
+  --color-soil-200: #cfc0b0;
+  --color-soil-300: #b09987;
+  --color-soil-400: #8c7260;
+  --color-soil-500: #5c4a38;
+  --color-soil-600: #3f3228;
+  --color-soil-700: #2C2317;
+  --color-soil-800: #1a150e;
+  --color-soil-900: #0d0a07;
+
+  --color-terra-50: #fdf2ec;
+  --color-terra-100: #fae1d0;
+  --color-terra-200: #f5c3a0;
+  --color-terra-300: #ee9e6c;
+  --color-terra-400: #de7840;
+  --color-terra-500: #C96A3F;
+  --color-terra-600: #a85232;
+  --color-terra-700: #7f3c24;
+  --color-terra-800: #552717;
+  --color-terra-900: #2a130c;
+
+  --color-cream: #F6F3E9;
+  --color-cream-dark: #ece8d4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #F6F3E9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

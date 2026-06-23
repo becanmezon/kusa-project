@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景：落ち着いた緑の角丸正方形 -->
+  <rect width="512" height="512" rx="108" fill="#4F7A2E"/>
+  <!-- 茎 -->
+  <rect x="242" y="300" width="28" height="120" rx="14" fill="#F6F3E9"/>
+  <!-- 左の葉 -->
+  <path d="M256 280 C256 280 180 240 160 170 C140 100 200 80 256 160
+           C256 160 256 200 256 280Z" fill="#F6F3E9" opacity="0.95"/>
+  <!-- 右の葉 -->
+  <path d="M256 280 C256 280 332 240 352 170 C372 100 312 80 256 160
+           C256 160 256 200 256 280Z" fill="#F6F3E9" opacity="0.85"/>
+  <!-- 中央の芽（土から出た新芽感） -->
+  <path d="M256 170 C256 130 256 110 256 100" stroke="#F6F3E9" stroke-width="18"
+        stroke-linecap="round" fill="none"/>
+  <!-- テラコッタの土ライン -->
+  <rect x="140" y="400" width="232" height="16" rx="8" fill="#C96A3F" opacity="0.7"/>
+</svg>
