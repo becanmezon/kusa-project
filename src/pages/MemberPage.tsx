@@ -4,7 +4,7 @@ import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { VegetableGallery } from '../components/VegetableGallery'
 import { WateringHistory } from '../components/WateringHistory'
-import { getSavedName, today, tomorrow } from '../lib/utils'
+import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import {
   fetchWaterings, upsertWatering, deleteWateringByDate,
@@ -149,6 +149,13 @@ export function MemberPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
+      {/* テストモードバナー */}
+      {isTestMode() && (
+        <div className="bg-yellow-300 text-yellow-900 text-xs font-bold px-4 py-2 text-center">
+          🧪 テストモード: {todayStr} として表示中 ／ URLから ?testdate= を削除すると解除
+        </div>
+      )}
+
       {/* ヘッダー */}
       <header className="bg-soil-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">

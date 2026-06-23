@@ -1,12 +1,31 @@
-/** 今日の日付を "YYYY-MM-DD" 形式で返す */
+// ─── テスト用日付オーバーライド ──────────────────────────────
+// ?testdate=YYYY-MM-DD をURLに付けると「今日」をその日付として扱う。
+// 確認が終わったら getEffectiveDate() を削除し、today()/tomorrow()/getActiveSlots() を
+// new Date() 直接呼び出しに戻すだけで完全に除去できる。
+
+function getEffectiveDate(): Date {
+  const param = new URLSearchParams(window.location.search).get('testdate')
+  if (param && /^\d{4}-\d{2}-\d{2}$/.test(param)) {
+    const d = new Date(param + 'T00:00:00')
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date()
+}
+
+/** テストモードが有効かどうか（バナー表示などに使う） */
+export function isTestMode(): boolean {
+  return !!new URLSearchParams(window.location.search).get('testdate')
+}
+
+/** 今日の日付を "YYYY-MM-DD" 形式で返す（?testdate で上書き可） */
 export function today(): string {
-  const d = new Date()
+  const d = getEffectiveDate()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** 明日の日付を "YYYY-MM-DD" 形式で返す */
+/** 明日の日付を "YYYY-MM-DD" 形式で返す（?testdate で上書き可） */
 export function tomorrow(): string {
-  const d = new Date()
+  const d = getEffectiveDate()
   d.setDate(d.getDate() + 1)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -32,7 +51,7 @@ export function formatTime(isoStr: string): string {
  * 「今日の日付」を基準にする仕様
  */
 export function getActiveSlots(): ('morning' | 'evening')[] {
-  const month = new Date().getMonth() + 1 // 1〜12
+  const month = getEffectiveDate().getMonth() + 1 // ?testdate で上書き可
   return month >= 7 && month <= 9 ? ['morning', 'evening'] : ['morning']
 }
 
