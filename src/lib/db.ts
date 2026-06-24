@@ -16,28 +16,33 @@ export async function fetchWaterings(fromDate: string, toDate: string): Promise<
   return data ?? []
 }
 
-/** 今日の水やりを登録（date がユニークなので upsert で上書き可） */
+/** 水やりを登録（date + slot がユニークなので upsert で上書き可） */
 export async function upsertWatering(
   date: string,
   by_name: string,
   note: string | null,
   status: 'watered' | 'rain' = 'watered',
+  slot: 'morning' | 'evening' = 'morning',
 ): Promise<Watering> {
   const { data, error } = await supabase
     .from('waterings')
-    .upsert({ date, by_name, note, status }, { onConflict: 'date' })
+    .upsert({ date, slot, by_name, note, status }, { onConflict: 'date,slot' })
     .select()
     .single()
   if (error) throw error
   return data
 }
 
-/** 今日の水やりを取り消し */
-export async function deleteWateringByDate(date: string): Promise<void> {
+/** 指定した日付・枠の水やりを取り消し */
+export async function deleteWateringByDateSlot(
+  date: string,
+  slot: 'morning' | 'evening',
+): Promise<void> {
   const { error } = await supabase
     .from('waterings')
     .delete()
     .eq('date', date)
+    .eq('slot', slot)
   if (error) throw error
 }
 
@@ -139,15 +144,22 @@ export function getVegetableImageUrl(path: string): string {
 
 // ─── 水やり履歴の整形 ────────────────────────────────────────
 
-/** 直近 days 日分の日付×水やり対応状況を返す */
-export function buildWateringHistory(
-  waterings: Watering[],
-  days = 14,
-): { date: string; watering: Watering | null }[] {
+export interface HistoryEntry {
+  date: string
+  morning: Watering | null
+  evening: Watering | null
+}
+
+/** 直近 days 日分の日付×朝夜水やり対応状況を返す */
+export function buildWateringHistory(waterings: Watering[], days = 14): HistoryEntry[] {
   return Array.from({ length: days }, (_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - i)
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    return { date: ds, watering: waterings.find(w => w.date === ds) ?? null }
+    return {
+      date: ds,
+      morning: waterings.find(w => w.date === ds && w.slot === 'morning') ?? null,
+      evening: waterings.find(w => w.date === ds && w.slot === 'evening') ?? null,
+    }
   })
 }

@@ -6,7 +6,7 @@ const tom = tomorrow()
 
 export const mockWaterings: Watering[] = [
   {
-    id: '1', date: t, status: 'watered',
+    id: '1', date: t, slot: 'morning', status: 'watered',
     by_name: '沼田', note: 'トマトに多めにあげた',
     created_at: new Date().toISOString(),
   },

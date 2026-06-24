@@ -7,7 +7,7 @@ import { WateringHistory } from '../components/WateringHistory'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import {
-  fetchWaterings, upsertWatering, deleteWateringByDate,
+  fetchWaterings, upsertWatering, deleteWateringByDateSlot,
   fetchShifts,
   fetchVegetables, insertVegetable, deleteVegetable,
   uploadVegetableImage, getVegetableImageUrl,
@@ -40,7 +40,8 @@ export function MemberPage() {
 
   const todayStr    = today()
   const tomorrowStr = tomorrow()
-  const todayWatering = waterings.find(w => w.date === todayStr) ?? null
+  const todayMorningWatering = waterings.find(w => w.date === todayStr && w.slot === 'morning') ?? null
+  const todayEveningWatering = waterings.find(w => w.date === todayStr && w.slot === 'evening') ?? null
   const todayShift    = shifts.find(s => s.date === todayStr) ?? null
   const tomorrowShift = shifts.find(s => s.date === tomorrowStr) ?? null
 
@@ -80,19 +81,19 @@ export function MemberPage() {
   }, [userName, todayStr])
 
   // ── ハンドラ ────────────────────────────────────────────────
-  const handleWater = async (note: string) => {
-    const saved = await upsertWatering(todayStr, userName!, note || null, 'watered')
-    setWaterings(prev => [...prev.filter(w => w.date !== todayStr), saved])
+  const handleWater = async (note: string, slot: 'morning' | 'evening') => {
+    const saved = await upsertWatering(todayStr, userName!, note || null, 'watered', slot)
+    setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
   }
 
-  const handleRain = async () => {
-    const saved = await upsertWatering(todayStr, userName!, null, 'rain')
-    setWaterings(prev => [...prev.filter(w => w.date !== todayStr), saved])
+  const handleRain = async (slot: 'morning' | 'evening') => {
+    const saved = await upsertWatering(todayStr, userName!, null, 'rain', slot)
+    setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
   }
 
-  const handleUndo = async () => {
-    await deleteWateringByDate(todayStr)
-    setWaterings(prev => prev.filter(w => w.date !== todayStr))
+  const handleUndo = async (slot: 'morning' | 'evening') => {
+    await deleteWateringByDateSlot(todayStr, slot)
+    setWaterings(prev => prev.filter(w => !(w.date === todayStr && w.slot === slot)))
   }
 
   const handleVegUpload = async (file: File, name: string, note: string) => {
@@ -180,7 +181,8 @@ export function MemberPage() {
         {tab === 'today' && (
           <TodayWatering
             userName={userName}
-            todayWatering={todayWatering}
+            todayMorningWatering={todayMorningWatering}
+            todayEveningWatering={todayEveningWatering}
             todayShift={todayShift}
             tomorrowShift={tomorrowShift}
             onWater={handleWater}

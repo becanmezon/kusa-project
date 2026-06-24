@@ -1,7 +1,8 @@
 export interface Watering {
   id: string
-  date: string                    // "YYYY-MM-DD"
-  status: 'watered' | 'rain'     // 水やり済み or 雨でやらなかった
+  date: string                      // "YYYY-MM-DD"
+  slot: 'morning' | 'evening'       // 朝 or 夜
+  status: 'watered' | 'rain'        // 水やり済み or 雨でやらなかった
   by_name: string
   note: string | null
   created_at: string
