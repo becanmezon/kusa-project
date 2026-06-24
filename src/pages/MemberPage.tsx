@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Droplets, ImageIcon, History, Loader2 } from 'lucide-react'
+import { Droplets, ImageIcon, History, Loader2, Feather } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { VegetableGallery } from '../components/VegetableGallery'
 import { WateringHistory } from '../components/WateringHistory'
+import { PostTimeline } from '../components/PostTimeline'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import {
@@ -12,15 +13,18 @@ import {
   fetchVegetables, insertVegetable, deleteVegetable,
   uploadVegetableImage, getVegetableImageUrl,
   buildWateringHistory,
+  fetchPosts, insertPost, deletePost, uploadPostImage,
+  fetchLikes, addLike, removeLike,
 } from '../lib/db'
-import type { Watering, Shift, Vegetable } from '../types'
+import type { Watering, Shift, Vegetable, Post, Like } from '../types'
 
-type Tab = 'today' | 'gallery' | 'history'
+type Tab = 'today' | 'gallery' | 'history' | 'whisper'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'today',   label: '今日',   icon: <Droplets size={20} /> },
-  { id: 'gallery', label: '写真',   icon: <ImageIcon size={20} /> },
-  { id: 'history', label: '履歴',   icon: <History size={20} /> },
+  { id: 'today',   label: '今日', icon: <Droplets size={20} /> },
+  { id: 'gallery', label: '写真', icon: <ImageIcon size={20} /> },
+  { id: 'history', label: '履歴', icon: <History  size={20} /> },
+  { id: 'whisper', label: 'W',    icon: <Feather  size={20} /> },
 ]
 
 function daysAgo(baseStr: string, n: number): string {
@@ -36,6 +40,8 @@ export function MemberPage() {
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [vegetables, setVegetables] = useState<Vegetable[]>([])
+  const [posts,      setPosts]      = useState<Post[]>([])
+  const [likes,      setLikes]      = useState<Like[]>([])
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
 
@@ -50,12 +56,15 @@ export function MemberPage() {
   const loadAll = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [w, s, v] = await Promise.all([
+      const [w, s, v, p, l] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
         fetchShifts(daysAgo(todayStr, 1), daysAgo(todayStr, -7)),
         fetchVegetables(),
+        fetchPosts(),
+        fetchLikes(),
       ])
       setWaterings(w); setShifts(s); setVegetables(v)
+      setPosts(p); setLikes(l)
     } catch (e) {
       console.error(e)
       setError('データの取得に失敗しました。再読み込みしてください。')
@@ -77,11 +86,17 @@ export function MemberPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vegetables' }, () => {
         fetchVegetables().then(setVegetables).catch(console.error)
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        fetchPosts().then(setPosts).catch(console.error)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
+        fetchLikes().then(setLikes).catch(console.error)
+      })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [userName, todayStr])
 
-  // ── ハンドラ ────────────────────────────────────────────────
+  // ── 水やりハンドラ ──────────────────────────────────────────
   const handleWater = async (note: string, slot: 'morning' | 'evening') => {
     const saved = await upsertWatering(todayStr, userName!, note || null, 'watered', slot)
     setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
@@ -97,6 +112,7 @@ export function MemberPage() {
     setWaterings(prev => prev.filter(w => !(w.date === todayStr && w.slot === slot)))
   }
 
+  // ── 野菜写真ハンドラ ────────────────────────────────────────
   const handleVegUpload = async (file: File, name: string, note: string) => {
     const imagePath = await uploadVegetableImage(file)
     const veg = await insertVegetable(name, userName!, note || null, imagePath, todayStr)
@@ -106,6 +122,37 @@ export function MemberPage() {
   const handleVegDelete = async (veg: Vegetable) => {
     await deleteVegetable(veg.id, veg.image_path)
     setVegetables(prev => prev.filter(v => v.id !== veg.id))
+  }
+
+  // ── W（つぶやき）ハンドラ ───────────────────────────────────
+  const handlePost = async (body: string, imageFile: File | null) => {
+    const image_path = imageFile ? await uploadPostImage(imageFile) : null
+    const post = await insertPost(body, userName!, image_path)
+    setPosts(prev => [post, ...prev])
+  }
+
+  const handleDeletePost = async (post: Post) => {
+    await deletePost(post.id, post.image_path)
+    setPosts(prev => prev.filter(p => p.id !== post.id))
+  }
+
+  const handleLike = async (post: Post) => {
+    const existing = likes.find(l => l.post_id === post.id && l.by_name === userName)
+    if (existing) {
+      // 楽観的に先に削除
+      setLikes(prev => prev.filter(l => !(l.post_id === post.id && l.by_name === userName)))
+      await removeLike(post.id, userName!)
+    } else {
+      // 楽観的に先に追加（仮IDで）
+      const optimistic: Like = { id: 'tmp', post_id: post.id, by_name: userName!, created_at: new Date().toISOString() }
+      setLikes(prev => [...prev, optimistic])
+      try {
+        const real = await addLike(post.id, userName!)
+        setLikes(prev => [...prev.filter(l => l.id !== 'tmp'), real])
+      } catch {
+        setLikes(prev => prev.filter(l => l.id !== 'tmp'))
+      }
+    }
   }
 
   // ── 名前未設定 ───────────────────────────────────────────────
@@ -202,6 +249,17 @@ export function MemberPage() {
         )}
         {tab === 'history' && (
           <WateringHistory history={buildWateringHistory(waterings)} />
+        )}
+        {tab === 'whisper' && (
+          <PostTimeline
+            userName={userName}
+            posts={posts}
+            likes={likes}
+            onPost={handlePost}
+            onDelete={handleDeletePost}
+            onLike={handleLike}
+            getImageUrl={getVegetableImageUrl}
+          />
         )}
       </main>
 

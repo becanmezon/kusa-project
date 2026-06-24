@@ -25,3 +25,18 @@ export interface Vegetable {
   day: string                     // "YYYY-MM-DD"
   created_at: string
 }
+
+export interface Post {
+  id: string
+  body: string
+  image_path: string | null
+  by_name: string
+  created_at: string
+}
+
+export interface Like {
+  id: string
+  post_id: string
+  by_name: string
+  created_at: string
+}

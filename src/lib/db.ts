@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { resizeImage, today } from './utils'
-import type { Watering, Shift, Vegetable } from '../types'
+import type { Watering, Shift, Vegetable, Post, Like } from '../types'
 
 // ─── Waterings ────────────────────────────────────────────────
 
@@ -140,6 +140,77 @@ export function getVegetableImageUrl(path: string): string {
   // すでに http:// で始まるURL（モック用）はそのまま返す
   if (path.startsWith('http')) return path
   return supabase.storage.from('veg-photos').getPublicUrl(path).data.publicUrl
+}
+
+// ─── Posts ────────────────────────────────────────────────────
+
+export async function fetchPosts(): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function insertPost(
+  body: string,
+  by_name: string,
+  image_path: string | null,
+): Promise<Post> {
+  const { data, error } = await supabase
+    .from('posts')
+    .insert({ body, by_name, image_path })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePost(id: string, image_path: string | null): Promise<void> {
+  if (image_path) {
+    await supabase.storage.from('veg-photos').remove([image_path])
+  }
+  const { error } = await supabase.from('posts').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function uploadPostImage(file: File): Promise<string> {
+  const blob = await resizeImage(file)
+  const year = new Date().getFullYear()
+  const path = `posts/${year}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+  const { error } = await supabase.storage
+    .from('veg-photos')
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false })
+  if (error) throw error
+  return path
+}
+
+// ─── Likes ────────────────────────────────────────────────────
+
+export async function fetchLikes(): Promise<Like[]> {
+  const { data, error } = await supabase.from('likes').select('*')
+  if (error) throw error
+  return data ?? []
+}
+
+export async function addLike(post_id: string, by_name: string): Promise<Like> {
+  const { data, error } = await supabase
+    .from('likes')
+    .insert({ post_id, by_name })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function removeLike(post_id: string, by_name: string): Promise<void> {
+  const { error } = await supabase
+    .from('likes')
+    .delete()
+    .eq('post_id', post_id)
+    .eq('by_name', by_name)
+  if (error) throw error
 }
 
 // ─── 水やり履歴の整形 ────────────────────────────────────────
