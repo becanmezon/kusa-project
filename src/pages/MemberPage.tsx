@@ -58,7 +58,7 @@ export function MemberPage() {
     try {
       const [w, s, v, p, l] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
-        fetchShifts(daysAgo(todayStr, 1), daysAgo(todayStr, -7)),
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
         fetchVegetables(),
         fetchPosts(),
         fetchLikes(),
@@ -248,7 +248,7 @@ export function MemberPage() {
           />
         )}
         {tab === 'history' && (
-          <WateringHistory history={buildWateringHistory(waterings)} />
+          <WateringHistory history={buildWateringHistory(waterings)} shifts={shifts} />
         )}
         {tab === 'whisper' && (
           <PostTimeline
