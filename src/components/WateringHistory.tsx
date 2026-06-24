@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import { CheckCircle, XCircle, CloudRain } from 'lucide-react'
 import { formatDate, today } from '../lib/utils'
 import type { Watering, Shift } from '../types'
@@ -62,7 +63,15 @@ interface Props {
 
 export function WateringHistory({ history, shifts }: Props) {
   const todayStr = today()
-  const dates = buildTimeline(todayStr)
+  const dates    = buildTimeline(todayStr)
+  const todayRef = useRef<HTMLLIElement>(null)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      todayRef.current?.scrollIntoView({ block: 'center' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-soil-100 overflow-hidden">
@@ -109,6 +118,7 @@ export function WateringHistory({ history, shifts }: Props) {
           return (
             <li
               key={date}
+              ref={isToday ? todayRef : undefined}
               className={`border-b border-soil-100 last:border-0 px-4 ${isToday ? 'bg-leaf-50 py-3' : 'py-2'}`}
             >
               <div className="flex items-start justify-between gap-2">
