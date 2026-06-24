@@ -68,7 +68,22 @@ export function WateringHistory({ history, shifts }: Props) {
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      todayRef.current?.scrollIntoView({ block: 'center' })
+      const el = todayRef.current
+      if (!el) return
+      // スクロール可能な祖先を探す
+      let parent = el.parentElement
+      while (parent) {
+        const oy = getComputedStyle(parent).overflowY
+        if (oy === 'auto' || oy === 'scroll') break
+        parent = parent.parentElement
+      }
+      if (!parent) return
+      // 「今日」行をコンテナ上端から 1/3 の位置に合わせる
+      const parentRect = parent.getBoundingClientRect()
+      const elRect     = el.getBoundingClientRect()
+      const current    = elRect.top - parentRect.top   // 現在の相対位置
+      const target     = parentRect.height / 3         // 目標位置（上から 1/3）
+      parent.scrollTop += current - target
     })
     return () => cancelAnimationFrame(id)
   }, [])
