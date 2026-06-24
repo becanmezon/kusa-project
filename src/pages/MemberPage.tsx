@@ -23,10 +23,11 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'history', label: '履歴',   icon: <History size={20} /> },
 ]
 
-function daysAgo(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() - n)
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+function daysAgo(baseStr: string, n: number): string {
+  const [y, m, d] = baseStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() - n)
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
 }
 
 export function MemberPage() {
@@ -50,8 +51,8 @@ export function MemberPage() {
     setLoading(true); setError(null)
     try {
       const [w, s, v] = await Promise.all([
-        fetchWaterings(daysAgo(14), todayStr),
-        fetchShifts(daysAgo(1), daysAgo(-7)),
+        fetchWaterings(daysAgo(todayStr, 14), todayStr),
+        fetchShifts(daysAgo(todayStr, 1), daysAgo(todayStr, -7)),
         fetchVegetables(),
       ])
       setWaterings(w); setShifts(s); setVegetables(v)
@@ -71,7 +72,7 @@ export function MemberPage() {
     const ch = supabase
       .channel('kusa-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
-        fetchWaterings(daysAgo(14), todayStr).then(setWaterings).catch(console.error)
+        fetchWaterings(daysAgo(todayStr, 14), todayStr).then(setWaterings).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vegetables' }, () => {
         fetchVegetables().then(setVegetables).catch(console.error)

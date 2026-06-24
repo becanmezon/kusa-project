@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { resizeImage } from './utils'
+import { resizeImage, today } from './utils'
 import type { Watering, Shift, Vegetable } from '../types'
 
 // ─── Waterings ────────────────────────────────────────────────
@@ -150,12 +150,15 @@ export interface HistoryEntry {
   evening: Watering | null
 }
 
-/** 直近 days 日分の日付×朝夜水やり対応状況を返す */
+/** 直近 days 日分の日付×朝夜水やり対応状況を返す（テストモード対応） */
 export function buildWateringHistory(waterings: Watering[], days = 14): HistoryEntry[] {
+  const baseStr = today() // ?testdate で上書き可
+  const [y, m, d] = baseStr.split('-').map(Number)
+  const base = new Date(y, m - 1, d)
   return Array.from({ length: days }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const date = new Date(base)
+    date.setDate(date.getDate() - i)
+    const ds = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     return {
       date: ds,
       morning: waterings.find(w => w.date === ds && w.slot === 'morning') ?? null,
