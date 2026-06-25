@@ -244,7 +244,7 @@ export function MemberPage() {
         <div className="flex-1 flex justify-center relative">
           <button
             onClick={() => setTab('today')}
-            className="absolute -top-8 w-16 h-16 rounded-full bg-leaf-600 text-white shadow-xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+            className="absolute -top-6 w-16 h-16 rounded-full bg-leaf-600 text-white shadow-xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
           >
             <Droplets size={22} />
             <span className="text-xs font-bold">今日</span>
