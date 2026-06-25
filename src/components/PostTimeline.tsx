@@ -2,11 +2,13 @@ import { useState, useRef } from 'react'
 import { Feather, Heart, Trash2, ImageIcon, X } from 'lucide-react'
 import type { Post, Like } from '../types'
 
+const MAX_IMAGES = 4
+
 interface Props {
   userName: string
   posts: Post[]
   likes: Like[]
-  onPost: (body: string, image: File | null) => Promise<void>
+  onPost: (body: string, images: File[]) => Promise<void>
   onDelete: (post: Post) => Promise<void>
   onLike: (post: Post) => Promise<void>
   getImageUrl: (path: string) => string
@@ -14,55 +16,116 @@ interface Props {
 
 function timeLabel(isoStr: string): string {
   const d = new Date(isoStr)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
   if (diffMin < 1)  return 'たった今'
   if (diffMin < 60) return `${diffMin}分前`
   const diffH = Math.floor(diffMin / 60)
   if (diffH < 24)   return `${diffH}時間前`
   const m = d.getMonth() + 1
-  const day = d.getDate()
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${m}/${day} ${hh}:${mm}`
+  return `${m}/${d.getDate()} ${hh}:${mm}`
+}
+
+// ── 画像グリッド（X風レイアウト） ────────────────────────────
+function ImageGrid({ paths, getImageUrl, onExpand }: {
+  paths: string[]
+  getImageUrl: (path: string) => string
+  onExpand: (url: string) => void
+}) {
+  if (paths.length === 0) return null
+  const urls = paths.map(p => getImageUrl(p))
+
+  if (paths.length === 1) {
+    return (
+      <button className="block w-full mb-3" onClick={() => onExpand(urls[0])}>
+        <img src={urls[0]} className="rounded-xl w-full max-h-72 object-cover" loading="lazy" alt="" />
+      </button>
+    )
+  }
+
+  if (paths.length === 2) {
+    return (
+      <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
+        {urls.map((src, i) => (
+          <button key={i} className="aspect-square" onClick={() => onExpand(src)}>
+            <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
+          </button>
+        ))}
+      </div>
+    )
+  }
+
+  if (paths.length === 3) {
+    return (
+      <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3 h-48">
+        <button className="row-span-2" onClick={() => onExpand(urls[0])}>
+          <img src={urls[0]} className="w-full h-full object-cover" loading="lazy" alt="" />
+        </button>
+        <button onClick={() => onExpand(urls[1])}>
+          <img src={urls[1]} className="w-full h-full object-cover" loading="lazy" alt="" />
+        </button>
+        <button onClick={() => onExpand(urls[2])}>
+          <img src={urls[2]} className="w-full h-full object-cover" loading="lazy" alt="" />
+        </button>
+      </div>
+    )
+  }
+
+  // 4枚: 2×2
+  return (
+    <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
+      {urls.map((src, i) => (
+        <button key={i} className="aspect-square" onClick={() => onExpand(src)}>
+          <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike, getImageUrl }: Props) {
-  const [body,         setBody]         = useState('')
-  const [imageFile,    setImageFile]    = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [posting,      setPosting]      = useState(false)
-  const [expandedImg,  setExpandedImg]  = useState<string | null>(null)
+  const [body,          setBody]          = useState('')
+  const [imageFiles,    setImageFiles]    = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [posting,       setPosting]       = useState(false)
+  const [expandedImg,   setExpandedImg]   = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+  const addImages = (files: File[]) => {
+    const slots = MAX_IMAGES - imageFiles.length
+    const toAdd = files.slice(0, slots)
+    if (toAdd.length === 0) return
+    setImageFiles(prev => [...prev, ...toAdd])
+    setImagePreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))])
   }
 
-  const clearImage = () => {
-    setImageFile(null)
-    if (imagePreview) URL.revokeObjectURL(imagePreview)
-    setImagePreview(null)
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index])
+    setImageFiles(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addImages(Array.from(e.target.files ?? []))
     if (fileRef.current) fileRef.current.value = ''
   }
 
   const handlePost = async () => {
-    if (!body.trim() && !imageFile) return
+    if (!body.trim() && imageFiles.length === 0) return
     setPosting(true)
     try {
-      await onPost(body.trim(), imageFile)
+      await onPost(body.trim(), imageFiles)
       setBody('')
-      clearImage()
+      imagePreviews.forEach(u => URL.revokeObjectURL(u))
+      setImageFiles([])
+      setImagePreviews([])
     } finally {
       setPosting(false)
     }
   }
 
-  const canPost = !posting && (body.trim().length > 0 || !!imageFile)
+  const canPost = !posting && (body.trim().length > 0 || imageFiles.length > 0)
 
   return (
     <div className="space-y-4">
@@ -77,27 +140,48 @@ export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike,
           className="w-full border border-soil-200 rounded-lg px-3 py-2 text-sm text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
         />
 
-        {/* 画像プレビュー */}
-        {imagePreview && (
-          <div className="relative inline-block">
-            <img src={imagePreview} className="h-28 rounded-xl object-cover" alt="preview" />
-            <button
-              onClick={clearImage}
-              className="absolute -top-2 -right-2 bg-soil-600 text-white rounded-full p-0.5 shadow"
-            >
-              <X size={13} />
-            </button>
+        {/* 画像プレビュー一覧 */}
+        {imagePreviews.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {imagePreviews.map((url, i) => (
+              <div key={i} className="relative shrink-0">
+                <img src={url} className="w-20 h-20 rounded-xl object-cover" alt="" />
+                <button
+                  onClick={() => removeImage(i)}
+                  className="absolute -top-1.5 -right-1.5 bg-soil-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex items-center gap-1.5 text-soil-400 text-sm hover:text-leaf-500 transition-colors"
-          >
-            <ImageIcon size={18} /> 画像
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+          <div>
+            {imageFiles.length < MAX_IMAGES ? (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="flex items-center gap-1.5 text-soil-400 text-sm hover:text-leaf-500 transition-colors"
+              >
+                <ImageIcon size={18} />
+                {imageFiles.length > 0
+                  ? <span className="tabular-nums">{imageFiles.length}/{MAX_IMAGES}</span>
+                  : <span>画像</span>
+                }
+              </button>
+            ) : (
+              <span className="text-xs text-soil-300">画像は最大4枚です</span>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
 
           <div className="flex items-center gap-3">
             <span className={`text-xs tabular-nums ${body.length > 90 ? 'text-terra-500 font-bold' : 'text-soil-300'}`}>
@@ -154,36 +238,25 @@ export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike,
                   </p>
                 )}
 
-                {/* 画像 */}
-                {post.image_path && (
-                  <button
-                    className="block w-full mb-3"
-                    onClick={() => setExpandedImg(getImageUrl(post.image_path!))}
-                  >
-                    <img
-                      src={getImageUrl(post.image_path)}
-                      className="rounded-xl w-full max-h-72 object-cover"
-                      loading="lazy"
-                      alt=""
-                    />
-                  </button>
-                )}
+                {/* 画像グリッド */}
+                <ImageGrid
+                  paths={post.image_paths}
+                  getImageUrl={getImageUrl}
+                  onExpand={setExpandedImg}
+                />
 
                 {/* いいね */}
                 <div className="flex items-center gap-2 pt-2 border-t border-soil-50">
                   <button
                     onClick={() => onLike(post)}
-                    className={`flex items-center gap-1.5 text-sm transition-colors active:scale-90 ${
+                    className={`flex items-center gap-1.5 transition-colors active:scale-90 ${
                       isLiked ? 'text-red-500' : 'text-soil-300 hover:text-red-400'
                     }`}
                   >
                     <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                   </button>
-                  {/* 投稿者本人のみいいね数を表示 */}
                   {isAuthor && postLikes.length > 0 && (
-                    <span className="text-xs text-soil-400 font-medium">
-                      {postLikes.length}
-                    </span>
+                    <span className="text-xs text-soil-400 font-medium">{postLikes.length}</span>
                   )}
                 </div>
 

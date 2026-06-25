@@ -156,20 +156,20 @@ export async function fetchPosts(): Promise<Post[]> {
 export async function insertPost(
   body: string,
   by_name: string,
-  image_path: string | null,
+  image_paths: string[],
 ): Promise<Post> {
   const { data, error } = await supabase
     .from('posts')
-    .insert({ body, by_name, image_path })
+    .insert({ body, by_name, image_paths })
     .select()
     .single()
   if (error) throw error
   return data
 }
 
-export async function deletePost(id: string, image_path: string | null): Promise<void> {
-  if (image_path) {
-    await supabase.storage.from('veg-photos').remove([image_path])
+export async function deletePost(id: string, image_paths: string[]): Promise<void> {
+  if (image_paths.length > 0) {
+    await supabase.storage.from('veg-photos').remove(image_paths)
   }
   const { error } = await supabase.from('posts').delete().eq('id', id)
   if (error) throw error

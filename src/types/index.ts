@@ -29,7 +29,7 @@ export interface Vegetable {
 export interface Post {
   id: string
   body: string
-  image_path: string | null
+  image_paths: string[]
   by_name: string
   created_at: string
 }

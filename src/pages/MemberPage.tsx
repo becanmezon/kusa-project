@@ -99,14 +99,14 @@ export function MemberPage() {
   }
 
   // ── W（つぶやき）ハンドラ ───────────────────────────────────
-  const handlePost = async (body: string, imageFile: File | null) => {
-    const image_path = imageFile ? await uploadPostImage(imageFile) : null
-    const post = await insertPost(body, userName!, image_path)
+  const handlePost = async (body: string, imageFiles: File[]) => {
+    const image_paths = await Promise.all(imageFiles.map(f => uploadPostImage(f)))
+    const post = await insertPost(body, userName!, image_paths)
     setPosts(prev => [post, ...prev])
   }
 
   const handleDeletePost = async (post: Post) => {
-    await deletePost(post.id, post.image_path)
+    await deletePost(post.id, post.image_paths)
     setPosts(prev => prev.filter(p => p.id !== post.id))
   }
 
