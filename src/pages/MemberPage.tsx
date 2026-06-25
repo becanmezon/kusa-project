@@ -18,12 +18,6 @@ import type { Watering, Shift, Post, Like } from '../types'
 
 type Tab = 'whisper' | 'today' | 'history'
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'whisper', label: 'W',    icon: <Feather  size={20} /> },
-  { id: 'today',   label: '今日', icon: <Droplets size={20} /> },
-  { id: 'history', label: '履歴', icon: <History  size={20} /> },
-]
-
 function daysAgo(baseStr: string, n: number): string {
   const [y, m, d] = baseStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)
@@ -233,19 +227,42 @@ export function MemberPage() {
       </main>
 
       {/* ボトムナビ */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex">
-        {TABS.map(t => (
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible">
+
+        {/* W タブ */}
+        <button
+          onClick={() => setTab('whisper')}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
+            tab === 'whisper' ? 'text-leaf-600' : 'text-soil-400'
+          }`}
+        >
+          <Feather size={20} />
+          W
+        </button>
+
+        {/* 今日タブ（中央・円形・飛び出し） */}
+        <div className="flex-1 flex justify-center relative">
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors ${
-              tab === t.id ? 'text-leaf-600' : 'text-soil-400'
-            }`}
+            onClick={() => setTab('today')}
+            className="absolute -top-8 w-16 h-16 rounded-full bg-leaf-600 text-white shadow-xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
           >
-            {t.icon}
-            {t.label}
+            <Droplets size={22} />
+            <span className="text-xs font-bold">今日</span>
           </button>
-        ))}
+          <div className="h-14" />
+        </div>
+
+        {/* 履歴タブ */}
+        <button
+          onClick={() => setTab('history')}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
+            tab === 'history' ? 'text-leaf-600' : 'text-soil-400'
+          }`}
+        >
+          <History size={20} />
+          履歴
+        </button>
+
       </nav>
     </div>
   )
