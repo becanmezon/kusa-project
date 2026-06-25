@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Droplets, ImageIcon, History, Loader2, Feather } from 'lucide-react'
+import { Droplets, History, Loader2, Feather } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
-import { VegetableGallery } from '../components/VegetableGallery'
 import { WateringHistory } from '../components/WateringHistory'
 import { PostTimeline } from '../components/PostTimeline'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
@@ -10,21 +9,19 @@ import { supabase } from '../lib/supabase'
 import {
   fetchWaterings, upsertWatering, deleteWateringByDateSlot,
   fetchShifts,
-  fetchVegetables, insertVegetable, deleteVegetable,
-  uploadVegetableImage, getVegetableImageUrl,
+  getVegetableImageUrl,
   buildWateringHistory,
   fetchPosts, insertPost, deletePost, uploadPostImage,
   fetchLikes, addLike, removeLike,
 } from '../lib/db'
-import type { Watering, Shift, Vegetable, Post, Like } from '../types'
+import type { Watering, Shift, Post, Like } from '../types'
 
-type Tab = 'today' | 'gallery' | 'history' | 'whisper'
+type Tab = 'whisper' | 'today' | 'history'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'today',   label: '今日', icon: <Droplets size={20} /> },
-  { id: 'gallery', label: '写真', icon: <ImageIcon size={20} /> },
-  { id: 'history', label: '履歴', icon: <History  size={20} /> },
   { id: 'whisper', label: 'W',    icon: <Feather  size={20} /> },
+  { id: 'today',   label: '今日', icon: <Droplets size={20} /> },
+  { id: 'history', label: '履歴', icon: <History  size={20} /> },
 ]
 
 function daysAgo(baseStr: string, n: number): string {
@@ -35,11 +32,10 @@ function daysAgo(baseStr: string, n: number): string {
 }
 
 export function MemberPage() {
-  const [userName,   setUserName]   = useState<string | null>(getSavedName() || null)
-  const [tab,        setTab]        = useState<Tab>('today')
+  const [userName, setUserName] = useState<string | null>(getSavedName() || null)
+  const [tab,      setTab]      = useState<Tab>('today')
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
-  const [vegetables, setVegetables] = useState<Vegetable[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
   const [likes,      setLikes]      = useState<Like[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -56,14 +52,13 @@ export function MemberPage() {
   const loadAll = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [w, s, v, p, l] = await Promise.all([
+      const [w, s, p, l] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
         fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
-        fetchVegetables(),
         fetchPosts(),
         fetchLikes(),
       ])
-      setWaterings(w); setShifts(s); setVegetables(v)
+      setWaterings(w); setShifts(s)
       setPosts(p); setLikes(l)
     } catch (e) {
       console.error(e)
@@ -82,9 +77,6 @@ export function MemberPage() {
       .channel('kusa-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
         fetchWaterings(daysAgo(todayStr, 14), todayStr).then(setWaterings).catch(console.error)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vegetables' }, () => {
-        fetchVegetables().then(setVegetables).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         fetchPosts().then(setPosts).catch(console.error)
@@ -112,18 +104,6 @@ export function MemberPage() {
     setWaterings(prev => prev.filter(w => !(w.date === todayStr && w.slot === slot)))
   }
 
-  // ── 野菜写真ハンドラ ────────────────────────────────────────
-  const handleVegUpload = async (file: File, name: string, note: string) => {
-    const imagePath = await uploadVegetableImage(file)
-    const veg = await insertVegetable(name, userName!, note || null, imagePath, todayStr)
-    setVegetables(prev => [veg, ...prev])
-  }
-
-  const handleVegDelete = async (veg: Vegetable) => {
-    await deleteVegetable(veg.id, veg.image_path)
-    setVegetables(prev => prev.filter(v => v.id !== veg.id))
-  }
-
   // ── W（つぶやき）ハンドラ ───────────────────────────────────
   const handlePost = async (body: string, imageFile: File | null) => {
     const image_path = imageFile ? await uploadPostImage(imageFile) : null
@@ -139,11 +119,9 @@ export function MemberPage() {
   const handleLike = async (post: Post) => {
     const existing = likes.find(l => l.post_id === post.id && l.by_name === userName)
     if (existing) {
-      // 楽観的に先に削除
       setLikes(prev => prev.filter(l => !(l.post_id === post.id && l.by_name === userName)))
       await removeLike(post.id, userName!)
     } else {
-      // 楽観的に先に追加（仮IDで）
       const optimistic: Like = { id: 'tmp', post_id: post.id, by_name: userName!, created_at: new Date().toISOString() }
       setLikes(prev => [...prev, optimistic])
       try {
@@ -236,15 +214,6 @@ export function MemberPage() {
             onWater={handleWater}
             onRain={handleRain}
             onUndo={handleUndo}
-          />
-        )}
-        {tab === 'gallery' && (
-          <VegetableGallery
-            userName={userName}
-            vegetables={vegetables}
-            getImageUrl={getVegetableImageUrl}
-            onUpload={handleVegUpload}
-            onDelete={handleVegDelete}
           />
         )}
         {tab === 'history' && (
