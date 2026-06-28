@@ -20,11 +20,15 @@ export async function isSubscribed(): Promise<boolean> {
   }
 }
 
-export async function subscribePush(userName: string): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+export type SubscribeResult = 'ok' | 'permission_denied' | 'subscription_failed'
+
+export async function subscribePush(userName: string): Promise<SubscribeResult> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return 'subscription_failed'
+  }
 
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') return false
+  if (permission !== 'granted') return 'permission_denied'
 
   try {
     const reg = await navigator.serviceWorker.ready
@@ -44,10 +48,10 @@ export async function subscribePush(userName: string): Promise<boolean> {
     )
     if (error) throw error
 
-    return true
+    return 'ok'
   } catch (err) {
     console.error('subscribePush:', err)
-    return false
+    return 'subscription_failed'
   }
 }
 

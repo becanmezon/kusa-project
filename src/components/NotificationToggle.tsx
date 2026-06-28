@@ -1,40 +1,54 @@
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, Send, Loader2 } from 'lucide-react'
+import { Bell, BellOff, Send, Loader2, AlertCircle } from 'lucide-react'
 import { isSubscribed, subscribePush, unsubscribePush, sendTestNotification } from '../lib/push'
 
 interface Props {
   userName: string
 }
 
+function permissionStatus(): NotificationPermission | 'unknown' {
+  if (typeof window === 'undefined' || !('Notification' in window)) return 'unknown'
+  return Notification.permission
+}
+
 export function NotificationToggle({ userName }: Props) {
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string; type: 'ok' | 'err' } | null>(null)
+  const [blocked, setBlocked] = useState(false)
 
   useEffect(() => {
+    setBlocked(permissionStatus() === 'denied')
     isSubscribed().then(v => {
       setSubscribed(v)
       setLoading(false)
     })
   }, [])
 
-  const showMessage = (msg: string) => {
-    setMessage(msg)
-    setTimeout(() => setMessage(null), 3000)
+  const showMsg = (text: string, type: 'ok' | 'err' = 'ok') => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const handleToggle = async () => {
     setLoading(true)
+    setMessage(null)
     if (subscribed) {
       await unsubscribePush()
       setSubscribed(false)
-      showMessage('通知をオフにしました')
+      showMsg('通知をオフにしました')
     } else {
-      const ok = await subscribePush(userName)
-      setSubscribed(ok)
-      if (ok) showMessage('通知をオンにしました！')
-      else showMessage('通知の許可が得られませんでした')
+      const result = await subscribePush(userName)
+      if (result === 'ok') {
+        setSubscribed(true)
+        showMsg('通知をオンにしました！')
+      } else if (result === 'permission_denied') {
+        setBlocked(true)
+        showMsg('通知がブロックされています。下の手順で設定を変更してください。', 'err')
+      } else {
+        showMsg('登録に失敗しました（VAPIDキーを確認してください）', 'err')
+      }
     }
     setLoading(false)
   }
@@ -43,9 +57,9 @@ export function NotificationToggle({ userName }: Props) {
     setSending(true)
     try {
       await sendTestNotification(userName)
-      showMessage('テスト通知を送りました 🌱')
+      showMsg('テスト通知を送りました 🌱')
     } catch {
-      showMessage('送信に失敗しました')
+      showMsg('送信に失敗しました', 'err')
     } finally {
       setSending(false)
     }
@@ -101,7 +115,21 @@ export function NotificationToggle({ userName }: Props) {
           )}
 
           {message && (
-            <p className="text-xs text-center text-leaf-600 font-medium">{message}</p>
+            <p className={`text-xs text-center font-medium ${message.type === 'err' ? 'text-terra-500' : 'text-leaf-600'}`}>
+              {message.text}
+            </p>
+          )}
+
+          {blocked && (
+            <div className="bg-terra-50 border border-terra-200 rounded-xl px-3 py-2.5 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={13} className="text-terra-500 shrink-0" />
+                <p className="text-xs font-bold text-terra-600">通知がブロックされています</p>
+              </div>
+              <p className="text-xs text-terra-500 leading-relaxed pl-5">
+                設定アプリ → Safari → 詳細 → Webサイトの設定 → 通知 → このサイトを「許可」に変更してください
+              </p>
+            </div>
           )}
         </>
       )}
