@@ -32,19 +32,29 @@ function StatusBadge({ watering, compact = false }: { watering: Watering | null;
   const sz = compact ? 13 : 15
   if (watering?.status === 'watered') {
     return (
-      <div className="flex items-center gap-1">
-        <CheckCircle size={sz} className="text-leaf-500" />
-        <span className={`${compact ? 'text-xs' : 'text-sm'} text-leaf-700 font-medium`}>{watering.by_name}</span>
-        <span className="text-xs text-leaf-400 bg-leaf-50 px-1.5 py-0.5 rounded-full">済</span>
+      <div>
+        <div className="flex items-center gap-1">
+          <CheckCircle size={sz} className="text-leaf-500" />
+          <span className={`${compact ? 'text-xs' : 'text-sm'} text-leaf-700 font-medium`}>{watering.by_name}</span>
+          <span className="text-xs text-leaf-400 bg-leaf-50 px-1.5 py-0.5 rounded-full">済</span>
+        </div>
+        {watering.note && (
+          <p className="text-xs text-soil-400 mt-0.5 pl-4">「{watering.note}」</p>
+        )}
       </div>
     )
   }
   if (watering?.status === 'rain') {
     return (
-      <div className="flex items-center gap-1">
-        <CloudRain size={sz} className="text-blue-400" />
-        <span className={`${compact ? 'text-xs' : 'text-sm'} text-blue-600 font-medium`}>{watering.by_name}</span>
-        <span className="text-xs text-blue-400 bg-blue-50 px-1.5 py-0.5 rounded-full">雨</span>
+      <div>
+        <div className="flex items-center gap-1">
+          <CloudRain size={sz} className="text-blue-400" />
+          <span className={`${compact ? 'text-xs' : 'text-sm'} text-blue-600 font-medium`}>{watering.by_name}</span>
+          <span className="text-xs text-blue-400 bg-blue-50 px-1.5 py-0.5 rounded-full">雨</span>
+        </div>
+        {watering.note && (
+          <p className="text-xs text-blue-400 mt-0.5 pl-4">「{watering.note}」</p>
+        )}
       </div>
     )
   }

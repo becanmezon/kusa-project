@@ -10,7 +10,7 @@ interface Props {
   todayShift: Shift | null
   tomorrowShift: Shift | null
   onWater: (note: string, slot: 'morning' | 'evening') => Promise<void>
-  onRain: (slot: 'morning' | 'evening') => Promise<void>
+  onRain: (note: string, slot: 'morning' | 'evening') => Promise<void>
   onUndo: (slot: 'morning' | 'evening') => Promise<void>
 }
 
@@ -30,7 +30,7 @@ interface SlotCardProps {
   slot: 'morning' | 'evening'
   todayShift: Shift | null
   onWater: (note: string, slot: 'morning' | 'evening') => Promise<void>
-  onRain: (slot: 'morning' | 'evening') => Promise<void>
+  onRain: (note: string, slot: 'morning' | 'evening') => Promise<void>
   onUndo: (slot: 'morning' | 'evening') => Promise<void>
 }
 
@@ -82,10 +82,9 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
         <div className="bg-white/60 rounded-xl px-3 py-2 text-sm text-soil-600 space-y-0.5">
           <p>
             <span className="font-bold">{watering.by_name}</span>
-            {status === 'watered'
-              ? <> さんが <span className="font-bold">{formatTime(watering.created_at)}</span> に対応</>
-              : ' さんが雨と判断'
-            }
+            {' さんが '}
+            <span className="font-bold">{formatTime(watering.created_at)}</span>
+            {status === 'watered' ? ' に対応' : ' に雨と判断'}
           </p>
           {watering.note && <p className="text-soil-400">「{watering.note}」</p>}
         </div>
@@ -117,7 +116,7 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
               <Droplets size={16} /> 水やりした
             </button>
             <button
-              onClick={() => wrap(() => onRain(slot))}
+              onClick={() => wrap(() => onRain(note, slot).then(() => setNote('')))}
               disabled={loading}
               className="flex-1 bg-blue-400 text-white font-bold py-2.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 text-sm"
             >

@@ -116,8 +116,8 @@ export function MemberPage() {
     setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
   }
 
-  const handleRain = async (slot: 'morning' | 'evening') => {
-    const saved = await upsertWatering(todayStr, userName!, null, 'rain', slot)
+  const handleRain = async (note: string, slot: 'morning' | 'evening') => {
+    const saved = await upsertWatering(todayStr, userName!, note || null, 'rain', slot)
     setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
   }
 
