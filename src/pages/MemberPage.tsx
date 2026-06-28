@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Droplets, History, Loader2, Feather } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
@@ -26,9 +27,30 @@ function daysAgo(baseStr: string, n: number): string {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
 }
 
+// ?tab=w → whisper / ?tab=history → history / それ以外 → today
+function searchParamToTab(p: string | null): Tab {
+  if (p === 'w') return 'whisper'
+  if (p === 'history') return 'history'
+  return 'today'
+}
+
 export function MemberPage() {
   const [userName, setUserName] = useState<string | null>(getSavedName() || null)
-  const [tab,      setTab]      = useState<Tab>('today')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const tab = searchParamToTab(searchParams.get('tab'))
+
+  const changeTab = (newTab: Tab) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev) // testdate など他のパラメータを保持
+      if (newTab === 'today') {
+        next.delete('tab')
+      } else {
+        next.set('tab', newTab === 'whisper' ? 'w' : 'history')
+      }
+      return next
+    }, { replace: true }) // 履歴を汚さず上書き
+  }
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
@@ -258,7 +280,7 @@ export function MemberPage() {
 
         {/* W タブ */}
         <button
-          onClick={() => setTab('whisper')}
+          onClick={() => changeTab('whisper')}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
             tab === 'whisper' ? 'text-leaf-600' : 'text-soil-400'
           }`}
@@ -270,7 +292,7 @@ export function MemberPage() {
         {/* 今日タブ（中央・円形・飛び出し） */}
         <div className="flex-1 flex justify-center relative">
           <button
-            onClick={() => setTab('today')}
+            onClick={() => changeTab('today')}
             className="absolute -top-6 w-16 h-16 rounded-full bg-leaf-600 text-white shadow-xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
           >
             <Droplets size={22} />
@@ -281,7 +303,7 @@ export function MemberPage() {
 
         {/* 履歴タブ */}
         <button
-          onClick={() => setTab('history')}
+          onClick={() => changeTab('history')}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
             tab === 'history' ? 'text-leaf-600' : 'text-soil-400'
           }`}
