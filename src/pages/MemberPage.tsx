@@ -5,7 +5,6 @@ import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
 import { PostTimeline } from '../components/PostTimeline'
-import { NotificationToggle } from '../components/NotificationToggle'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import {
@@ -246,19 +245,16 @@ export function MemberPage() {
       {/* メインコンテンツ */}
       <main className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
         {tab === 'today' && (
-          <div className="space-y-4">
-            <TodayWatering
-              userName={userName}
-              todayMorningWatering={todayMorningWatering}
-              todayEveningWatering={todayEveningWatering}
-              todayShift={todayShift}
-              tomorrowShift={tomorrowShift}
-              onWater={handleWater}
-              onRain={handleRain}
-              onUndo={handleUndo}
-            />
-            <NotificationToggle userName={userName} />
-          </div>
+          <TodayWatering
+            userName={userName}
+            todayMorningWatering={todayMorningWatering}
+            todayEveningWatering={todayEveningWatering}
+            todayShift={todayShift}
+            tomorrowShift={tomorrowShift}
+            onWater={handleWater}
+            onRain={handleRain}
+            onUndo={handleUndo}
+          />
         )}
         {tab === 'history' && (
           <WateringHistory history={buildWateringHistory(waterings)} shifts={shifts} />
