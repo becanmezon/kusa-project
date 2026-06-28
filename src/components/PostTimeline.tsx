@@ -88,6 +88,70 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
   )
 }
 
+// ── 絵文字ピル（タッチ長押し・マウスホバーで名前表示、タップ/クリックでトグル） ──
+function EmojiPill({ emoji, count, reacted, isActive, onToggle, onShowNames, onHideNames, onLongPress }: {
+  emoji: string
+  count: number
+  reacted: boolean
+  isActive: boolean
+  onToggle: () => void
+  onShowNames: () => void
+  onHideNames: () => void
+  onLongPress: () => void
+}) {
+  const timerRef        = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isLongPress     = useRef(false)
+  const lastPointerType = useRef('')
+
+  const startLongPress = () => {
+    isLongPress.current = false
+    timerRef.current = setTimeout(() => {
+      isLongPress.current = true
+      onLongPress()
+    }, 500)
+  }
+
+  const cancelLongPress = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null }
+  }
+
+  return (
+    <button
+      onContextMenu={e => e.preventDefault()}
+      onPointerDown={e => {
+        lastPointerType.current = e.pointerType
+        if (e.pointerType === 'touch') startLongPress()
+      }}
+      onPointerUp={e => {
+        if (e.pointerType === 'touch') {
+          cancelLongPress()
+          if (!isLongPress.current) onToggle()
+        }
+      }}
+      onPointerCancel={cancelLongPress}
+      onPointerLeave={e => {
+        if (e.pointerType === 'touch') cancelLongPress()
+        if (e.pointerType === 'mouse') onHideNames()
+      }}
+      onPointerEnter={e => {
+        if (e.pointerType === 'mouse') onShowNames()
+      }}
+      onClick={() => {
+        // タッチ操作はpointerUpで処理済みのため、マウスクリックのみここで処理
+        if (lastPointerType.current === 'mouse') onToggle()
+      }}
+      className={`select-none flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors ${
+        reacted
+          ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
+          : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
+      } ${isActive ? 'ring-2 ring-leaf-300 ring-offset-1' : ''}`}
+    >
+      <span>{emoji}</span>
+      <span className="text-xs tabular-nums">{count}</span>
+    </button>
+  )
+}
+
 // ── リアクションバー ──────────────────────────────────────────
 function ReactionBar({ postId, reactions, userName, onReact }: {
   postId: string
@@ -96,7 +160,12 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
   onReact: (emoji: string) => void
 }) {
   const [pickerOpen,  setPickerOpen]  = useState(false)
-  const [activeEmoji, setActiveEmoji] = useState<string | null>(null)
+  // lockedEmoji: 長押しで表示（オーバーレイで閉じる）
+  // hoverEmoji:  ホバーで表示（pointerleaveで自動で消える）
+  const [lockedEmoji, setLockedEmoji] = useState<string | null>(null)
+  const [hoverEmoji,  setHoverEmoji]  = useState<string | null>(null)
+
+  const activeEmoji = lockedEmoji ?? hoverEmoji
 
   const postReactions = reactions.filter(r => r.post_id === postId)
   const grouped = EMOJIS
@@ -107,50 +176,53 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
     }))
     .filter(g => g.count > 0)
 
-  const handlePillClick = (emoji: string) => {
-    setPickerOpen(false)
-    setActiveEmoji(prev => (prev === emoji ? null : emoji))
-  }
-
-  const handlePickerToggle = () => {
-    setActiveEmoji(null)
-    setPickerOpen(p => !p)
-  }
+  const activeNames = activeEmoji
+    ? postReactions.filter(r => r.emoji === activeEmoji).map(r => r.by_name)
+    : []
 
   const handlePickerEmoji = (emoji: string) => {
     onReact(emoji)
     setPickerOpen(false)
   }
 
-  const activeNames = activeEmoji
-    ? postReactions.filter(r => r.emoji === activeEmoji).map(r => r.by_name)
-    : []
+  const handlePickerToggle = () => {
+    setLockedEmoji(null)
+    setHoverEmoji(null)
+    setPickerOpen(p => !p)
+  }
 
   return (
     <div className="relative">
-      {/* 名前表示用オーバーレイ */}
-      {activeEmoji && (
-        <div className="fixed inset-0 z-10" onClick={() => setActiveEmoji(null)} />
+      {/* 長押しで開いた名前一覧を閉じるオーバーレイ（ホバー時は不要） */}
+      {lockedEmoji && (
+        <div className="fixed inset-0 z-10" onClick={() => setLockedEmoji(null)} />
       )}
 
-      {/* ピル行 */}
       <div className="relative z-20 flex flex-wrap gap-1.5 items-center">
         {grouped.map(g => (
-          <button
+          <EmojiPill
             key={g.emoji}
-            onClick={() => handlePillClick(g.emoji)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors active:scale-95 ${
-              g.reacted
-                ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
-                : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
-            } ${activeEmoji === g.emoji ? 'ring-2 ring-leaf-300 ring-offset-1' : ''}`}
-          >
-            <span>{g.emoji}</span>
-            <span className="text-xs tabular-nums">{g.count}</span>
-          </button>
+            emoji={g.emoji}
+            count={g.count}
+            reacted={g.reacted}
+            isActive={activeEmoji === g.emoji}
+            onToggle={() => { onReact(g.emoji); setLockedEmoji(null) }}
+            onShowNames={() => {
+              setPickerOpen(false)
+              // ホバー表示はロック中は上書きしない
+              if (lockedEmoji) return
+              setHoverEmoji(g.emoji)
+            }}
+            onHideNames={() => setHoverEmoji(null)}
+            onLongPress={() => {
+              setPickerOpen(false)
+              setHoverEmoji(null)
+              setLockedEmoji(g.emoji)
+            }}
+          />
         ))}
 
-        {/* 追加ボタン */}
+        {/* 絵文字を追加/取り消しするピッカー */}
         <button
           onClick={handlePickerToggle}
           className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
@@ -162,7 +234,6 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
           <Plus size={13} />
         </button>
 
-        {/* 絵文字ピッカー（自分の既リアクションはハイライト表示） */}
         {pickerOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
@@ -186,7 +257,7 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
         )}
       </div>
 
-      {/* 誰がリアクションしたかの名前表示 */}
+      {/* 名前一覧 */}
       {activeEmoji && activeNames.length > 0 && (
         <div className="relative z-20 mt-1.5 flex items-center gap-1.5 bg-soil-50 rounded-xl px-3 py-1.5 text-sm">
           <span>{activeEmoji}</span>
