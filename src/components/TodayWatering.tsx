@@ -179,7 +179,7 @@ export function TodayWatering({
       {/* 朝枠 */}
       <SlotCard
         label="朝の水やり"
-        emoji="🌅"
+        emoji="☀️"
         watering={todayMorningWatering}
         slot="morning"
         todayShift={todayShift}
@@ -207,7 +207,7 @@ export function TodayWatering({
         <p className="text-xs text-soil-400 mb-2">明日（{formatDate(tomorrow())}）の担当</p>
         <div className="space-y-1 text-sm">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-soil-400 shrink-0">🌅 朝:</span>
+            <span className="text-soil-400 shrink-0">☀️ 朝:</span>
             <ShiftNames shift={tomorrowShift} slot="morning" />
           </div>
           {showEvening && (

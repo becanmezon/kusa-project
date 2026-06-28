@@ -119,7 +119,7 @@ export function WateringHistory({ history, shifts }: Props) {
                   {dual ? (
                     <div className="space-y-0.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-xs text-soil-400">🌅</span>
+                        <span className="text-xs text-soil-400">☀️</span>
                         <Names names={morningNames} />
                       </div>
                       <div className="flex items-center justify-end gap-1.5">

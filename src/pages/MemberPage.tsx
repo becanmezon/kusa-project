@@ -224,7 +224,7 @@ export function MemberPage() {
       )}
 
       {/* ヘッダー */}
-      <header className="bg-soil-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-soil-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🌱</span>
           <h1 className="font-bold text-base">草プロジェクト</h1>
