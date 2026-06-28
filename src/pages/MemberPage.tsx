@@ -13,8 +13,9 @@ import {
   buildWateringHistory,
   fetchPosts, insertPost, deletePost, uploadPostImage,
   fetchReactions, addReaction, removeReaction,
+  fetchReplies, insertReply, deleteReply,
 } from '../lib/db'
-import type { Watering, Shift, Post, Reaction } from '../types'
+import type { Watering, Shift, Post, Reaction, Reply } from '../types'
 
 type Tab = 'whisper' | 'today' | 'history'
 
@@ -32,6 +33,7 @@ export function MemberPage() {
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
   const [reactions,  setReactions]  = useState<Reaction[]>([])
+  const [replies,    setReplies]    = useState<Reply[]>([])
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
 
@@ -46,14 +48,15 @@ export function MemberPage() {
   const loadAll = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [w, s, p, r] = await Promise.all([
+      const [w, s, p, r, rep] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
         fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
         fetchPosts(),
         fetchReactions(),
+        fetchReplies(),
       ])
       setWaterings(w); setShifts(s)
-      setPosts(p); setReactions(r)
+      setPosts(p); setReactions(r); setReplies(rep)
     } catch (e) {
       console.error(e)
       setError('データの取得に失敗しました。再読み込みしてください。')
@@ -77,6 +80,9 @@ export function MemberPage() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, () => {
         fetchReactions().then(setReactions).catch(console.error)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'replies' }, () => {
+        fetchReplies().then(setReplies).catch(console.error)
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
@@ -108,6 +114,23 @@ export function MemberPage() {
   const handleDeletePost = async (post: Post) => {
     await deletePost(post.id, post.image_paths)
     setPosts(prev => prev.filter(p => p.id !== post.id))
+  }
+
+  const handleReply = async (post: Post, body: string) => {
+    const tmpId = `tmp-${Date.now()}`
+    const optimistic: Reply = { id: tmpId, post_id: post.id, body, by_name: userName!, created_at: new Date().toISOString() }
+    setReplies(prev => [...prev, optimistic])
+    try {
+      const real = await insertReply(post.id, body, userName!)
+      setReplies(prev => [...prev.filter(r => r.id !== tmpId), real])
+    } catch {
+      setReplies(prev => prev.filter(r => r.id !== tmpId))
+    }
+  }
+
+  const handleDeleteReply = async (reply: Reply) => {
+    setReplies(prev => prev.filter(r => r.id !== reply.id))
+    await deleteReply(reply.id)
   }
 
   const handleReact = async (post: Post, emoji: string) => {
@@ -219,9 +242,12 @@ export function MemberPage() {
             userName={userName}
             posts={posts}
             reactions={reactions}
+            replies={replies}
             onPost={handlePost}
             onDelete={handleDeletePost}
             onReact={handleReact}
+            onReply={handleReply}
+            onDeleteReply={handleDeleteReply}
             getImageUrl={getVegetableImageUrl}
           />
         )}

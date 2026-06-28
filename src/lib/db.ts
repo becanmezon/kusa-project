@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { resizeImage, today } from './utils'
-import type { Watering, Shift, Vegetable, Post, Reaction } from '../types'
+import type { Watering, Shift, Vegetable, Post, Reaction, Reply } from '../types'
 
 // ─── Waterings ────────────────────────────────────────────────
 
@@ -211,6 +211,32 @@ export async function removeReaction(post_id: string, emoji: string, by_name: st
     .eq('post_id', post_id)
     .eq('emoji', emoji)
     .eq('by_name', by_name)
+  if (error) throw error
+}
+
+// ─── Replies ──────────────────────────────────────────────────
+
+export async function fetchReplies(): Promise<Reply[]> {
+  const { data, error } = await supabase
+    .from('replies')
+    .select('*')
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function insertReply(post_id: string, body: string, by_name: string): Promise<Reply> {
+  const { data, error } = await supabase
+    .from('replies')
+    .insert({ post_id, body, by_name })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteReply(id: string): Promise<void> {
+  const { error } = await supabase.from('replies').delete().eq('id', id)
   if (error) throw error
 }
 

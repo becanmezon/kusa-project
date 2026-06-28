@@ -48,3 +48,11 @@ export interface Reaction {
   by_name: string
   created_at: string
 }
+
+export interface Reply {
+  id: string
+  post_id: string
+  body: string
+  by_name: string
+  created_at: string
+}
