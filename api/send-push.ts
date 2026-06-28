@@ -25,17 +25,34 @@ export default async function handler(
 
   const { data: subs } = await supabase
     .from('push_subscriptions')
-    .select('subscription')
+    .select('endpoint, subscription')
     .eq('user_name', user_name)
 
   const payload = JSON.stringify({ title: title ?? '草プロジェクト', body: body ?? 'テスト通知' })
 
-  const results = await Promise.allSettled(
-    (subs ?? []).map(row =>
-      webpush.sendNotification(row.subscription as webpush.PushSubscription, payload)
-    )
-  )
+  let sent = 0
+  let failed = 0
+  const expiredEndpoints: string[] = []
 
-  const sent = results.filter(r => r.status === 'fulfilled').length
-  return res.status(200).json({ sent, failed: results.length - sent })
+  for (const row of subs ?? []) {
+    try {
+      await webpush.sendNotification(row.subscription as webpush.PushSubscription, payload)
+      sent++
+    } catch (err: unknown) {
+      failed++
+      const statusCode = (err as { statusCode?: number }).statusCode ?? 0
+      console.error('[send-push] failed statusCode=%d body=%s', statusCode, (err as { body?: string }).body ?? '')
+      // 410 Gone / 404 Not Found = 購読が無効（VAPIDキー変更後など）→ 自動削除
+      if (statusCode === 410 || statusCode === 404) {
+        expiredEndpoints.push(row.endpoint as string)
+      }
+    }
+  }
+
+  if (expiredEndpoints.length > 0) {
+    await supabase.from('push_subscriptions').delete().in('endpoint', expiredEndpoints)
+    console.log('[send-push] deleted %d expired subscriptions', expiredEndpoints.length)
+  }
+
+  return res.status(200).json({ sent, failed, expired_deleted: expiredEndpoints.length })
 }
