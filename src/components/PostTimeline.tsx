@@ -112,7 +112,7 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
   }
 
   return (
-    <div className="flex flex-wrap gap-1.5 items-center">
+    <div className="relative flex flex-wrap gap-1.5 items-center">
       {grouped.map(g => (
         <button
           key={g.emoji}
@@ -128,35 +128,33 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
         </button>
       ))}
 
-      <div className="relative">
-        <button
-          onClick={() => setPickerOpen(p => !p)}
-          className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
-            pickerOpen
-              ? 'bg-soil-100 border-soil-300 text-soil-600'
-              : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
-          }`}
-        >
-          <Plus size={13} />
-        </button>
+      <button
+        onClick={() => setPickerOpen(p => !p)}
+        className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
+          pickerOpen
+            ? 'bg-soil-100 border-soil-300 text-soil-600'
+            : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
+        }`}
+      >
+        <Plus size={13} />
+      </button>
 
-        {pickerOpen && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
-            <div className="absolute bottom-full mb-1.5 left-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-20">
-              {EMOJIS.map(emoji => (
-                <button
-                  key={emoji}
-                  onClick={() => handleEmoji(emoji)}
-                  className="text-xl p-1.5 rounded-xl hover:bg-soil-50 active:scale-90 transition-transform"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      {pickerOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
+          <div className="absolute bottom-full mb-1.5 right-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-20">
+            {EMOJIS.map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => handleEmoji(emoji)}
+                className="text-xl p-1.5 rounded-xl hover:bg-soil-50 active:scale-90 transition-transform"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
