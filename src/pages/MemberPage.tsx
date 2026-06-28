@@ -243,10 +243,7 @@ export function MemberPage() {
       </header>
 
       {/* メインコンテンツ */}
-      <main
-        className="flex-1 px-4 pt-4 overflow-y-auto"
-        style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
-      >
+      <main className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
         {tab === 'today' && (
           <TodayWatering
             userName={userName}
@@ -280,7 +277,7 @@ export function MemberPage() {
 
       {/* ボトムナビ */}
       <nav
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible z-40"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
 
