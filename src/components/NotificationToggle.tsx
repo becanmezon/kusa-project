@@ -58,10 +58,17 @@ export function NotificationToggle({ userName }: Props) {
   const handleTest = async () => {
     setSending(true)
     try {
-      await sendTestNotification(userName)
-      showMsg('テスト通知を送りました 🌱')
+      const { sent, failed } = await sendTestNotification(userName)
+      if (sent > 0) {
+        showMsg(`送信成功（${sent}台）🌱 届かない場合はiPhone通知設定を確認してください`)
+      } else {
+        showMsg(
+          `APNsへの送信に失敗（sent=0, failed=${failed}）。Supabaseの購読情報か、Vercelのログを確認してください`,
+          'err'
+        )
+      }
     } catch {
-      showMsg('送信に失敗しました', 'err')
+      showMsg('APIの呼び出しに失敗しました', 'err')
     } finally {
       setSending(false)
     }

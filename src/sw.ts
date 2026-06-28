@@ -1,5 +1,10 @@
+import { clientsClaim } from 'workbox-core'
 import { cleanupOutdatedCaches, precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+
+// 新しいSWをインストール直後に即時アクティベート（古いSWを待機させない）
+self.addEventListener('install', () => self.skipWaiting())
+clientsClaim()
 
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
