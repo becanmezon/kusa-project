@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Post, Reaction, Reply } from '../types'
 
 const MAX_IMAGES = 4
@@ -35,14 +35,15 @@ function timeLabel(isoStr: string): string {
 function ImageGrid({ paths, getImageUrl, onExpand }: {
   paths: string[]
   getImageUrl: (path: string) => string
-  onExpand: (url: string) => void
+  onExpand: (urls: string[], index: number) => void
 }) {
   if (paths.length === 0) return null
   const urls = paths.map(p => getImageUrl(p))
+  const open = (i: number) => onExpand(urls, i)
 
   if (paths.length === 1) {
     return (
-      <button className="block w-full mb-3" onClick={() => onExpand(urls[0])}>
+      <button className="block w-full mb-3" onClick={() => open(0)}>
         <img src={urls[0]} className="rounded-xl w-full max-h-72 object-cover" loading="lazy" alt="" />
       </button>
     )
@@ -52,7 +53,7 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
     return (
       <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
         {urls.map((src, i) => (
-          <button key={i} className="aspect-square" onClick={() => onExpand(src)}>
+          <button key={i} className="aspect-square" onClick={() => open(i)}>
             <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
           </button>
         ))}
@@ -63,13 +64,13 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
   if (paths.length === 3) {
     return (
       <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3 h-48">
-        <button className="row-span-2" onClick={() => onExpand(urls[0])}>
+        <button className="row-span-2" onClick={() => open(0)}>
           <img src={urls[0]} className="w-full h-full object-cover" loading="lazy" alt="" />
         </button>
-        <button onClick={() => onExpand(urls[1])}>
+        <button onClick={() => open(1)}>
           <img src={urls[1]} className="w-full h-full object-cover" loading="lazy" alt="" />
         </button>
-        <button onClick={() => onExpand(urls[2])}>
+        <button onClick={() => open(2)}>
           <img src={urls[2]} className="w-full h-full object-cover" loading="lazy" alt="" />
         </button>
       </div>
@@ -80,10 +81,114 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
   return (
     <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
       {urls.map((src, i) => (
-        <button key={i} className="aspect-square" onClick={() => onExpand(src)}>
+        <button key={i} className="aspect-square" onClick={() => open(i)}>
           <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
         </button>
       ))}
+    </div>
+  )
+}
+
+// ── ライトボックス（拡大表示・スワイプ/矢印/キーボードナビ） ──
+function Lightbox({ urls, initialIndex, onClose }: {
+  urls: string[]
+  initialIndex: number
+  onClose: () => void
+}) {
+  const [index, setIndex] = useState(initialIndex)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+
+  const go = (delta: number) =>
+    setIndex(i => Math.max(0, Math.min(urls.length - 1, i + delta)))
+
+  // キーボード操作（矢印キー・Escape）
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft')  go(-1)
+      if (e.key === 'ArrowRight') go(1)
+      if (e.key === 'Escape')     onClose()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    // 縦より横の移動量が大きいときだけスワイプと見なす
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      if (dx > 0) go(-1)
+      else        go(1)
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/90 z-50 flex flex-col select-none"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* 閉じるボタン */}
+      <div className="flex justify-end p-3 shrink-0">
+        <button onClick={onClose} className="text-white/60 hover:text-white p-2 transition-colors">
+          <X size={22} />
+        </button>
+      </div>
+
+      {/* 画像エリア */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden px-10">
+        <img
+          key={index}
+          src={urls[index]}
+          className="max-w-full max-h-full object-contain rounded-xl"
+          alt=""
+          draggable={false}
+        />
+
+        {/* 左矢印（PC用） */}
+        {index > 0 && (
+          <button
+            onClick={() => go(-1)}
+            className="absolute left-1 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/30 hover:bg-black/50 rounded-full p-2 transition-colors"
+          >
+            <ChevronLeft size={22} />
+          </button>
+        )}
+
+        {/* 右矢印（PC用） */}
+        {index < urls.length - 1 && (
+          <button
+            onClick={() => go(1)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-white/70 hover:text-white bg-black/30 hover:bg-black/50 rounded-full p-2 transition-colors"
+          >
+            <ChevronRight size={22} />
+          </button>
+        )}
+      </div>
+
+      {/* ドットインジケーター */}
+      {urls.length > 1 && (
+        <div className="flex justify-center gap-2 py-4 shrink-0">
+          {urls.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                i === index ? 'bg-white' : 'bg-white/30'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -313,7 +418,7 @@ export function PostTimeline({
   const [imageFiles,     setImageFiles]     = useState<File[]>([])
   const [imagePreviews,  setImagePreviews]  = useState<string[]>([])
   const [posting,        setPosting]        = useState(false)
-  const [expandedImg,    setExpandedImg]    = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<{ urls: string[], index: number } | null>(null)
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -469,7 +574,7 @@ export function PostTimeline({
                 <ImageGrid
                   paths={post.image_paths}
                   getImageUrl={getImageUrl}
-                  onExpand={setExpandedImg}
+                  onExpand={(urls, index) => setLightbox({ urls, index })}
                 />
 
                 {/* フッター: リアクション ＋ 返信ボタン */}
@@ -537,14 +642,13 @@ export function PostTimeline({
         </ul>
       )}
 
-      {/* 画像拡大モーダル */}
-      {expandedImg && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setExpandedImg(null)}
-        >
-          <img src={expandedImg} className="max-w-full max-h-full rounded-xl" alt="" />
-        </div>
+      {/* ライトボックス */}
+      {lightbox && (
+        <Lightbox
+          urls={lightbox.urls}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(null)}
+        />
       )}
 
     </div>
