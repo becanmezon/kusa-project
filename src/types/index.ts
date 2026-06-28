@@ -40,3 +40,11 @@ export interface Like {
   by_name: string
   created_at: string
 }
+
+export interface Reaction {
+  id: string
+  post_id: string
+  emoji: string
+  by_name: string
+  created_at: string
+}

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { resizeImage, today } from './utils'
-import type { Watering, Shift, Vegetable, Post, Like } from '../types'
+import type { Watering, Shift, Vegetable, Post, Reaction } from '../types'
 
 // ─── Waterings ────────────────────────────────────────────────
 
@@ -186,29 +186,30 @@ export async function uploadPostImage(file: File): Promise<string> {
   return path
 }
 
-// ─── Likes ────────────────────────────────────────────────────
+// ─── Reactions ────────────────────────────────────────────────
 
-export async function fetchLikes(): Promise<Like[]> {
-  const { data, error } = await supabase.from('likes').select('*')
+export async function fetchReactions(): Promise<Reaction[]> {
+  const { data, error } = await supabase.from('reactions').select('*')
   if (error) throw error
   return data ?? []
 }
 
-export async function addLike(post_id: string, by_name: string): Promise<Like> {
+export async function addReaction(post_id: string, emoji: string, by_name: string): Promise<Reaction> {
   const { data, error } = await supabase
-    .from('likes')
-    .insert({ post_id, by_name })
+    .from('reactions')
+    .insert({ post_id, emoji, by_name })
     .select()
     .single()
   if (error) throw error
   return data
 }
 
-export async function removeLike(post_id: string, by_name: string): Promise<void> {
+export async function removeReaction(post_id: string, emoji: string, by_name: string): Promise<void> {
   const { error } = await supabase
-    .from('likes')
+    .from('reactions')
     .delete()
     .eq('post_id', post_id)
+    .eq('emoji', emoji)
     .eq('by_name', by_name)
   if (error) throw error
 }

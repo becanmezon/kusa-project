@@ -12,9 +12,9 @@ import {
   getVegetableImageUrl,
   buildWateringHistory,
   fetchPosts, insertPost, deletePost, uploadPostImage,
-  fetchLikes, addLike, removeLike,
+  fetchReactions, addReaction, removeReaction,
 } from '../lib/db'
-import type { Watering, Shift, Post, Like } from '../types'
+import type { Watering, Shift, Post, Reaction } from '../types'
 
 type Tab = 'whisper' | 'today' | 'history'
 
@@ -31,7 +31,7 @@ export function MemberPage() {
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
-  const [likes,      setLikes]      = useState<Like[]>([])
+  const [reactions,  setReactions]  = useState<Reaction[]>([])
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
 
@@ -46,14 +46,14 @@ export function MemberPage() {
   const loadAll = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const [w, s, p, l] = await Promise.all([
+      const [w, s, p, r] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
         fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
         fetchPosts(),
-        fetchLikes(),
+        fetchReactions(),
       ])
       setWaterings(w); setShifts(s)
-      setPosts(p); setLikes(l)
+      setPosts(p); setReactions(r)
     } catch (e) {
       console.error(e)
       setError('データの取得に失敗しました。再読み込みしてください。')
@@ -75,8 +75,8 @@ export function MemberPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         fetchPosts().then(setPosts).catch(console.error)
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
-        fetchLikes().then(setLikes).catch(console.error)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, () => {
+        fetchReactions().then(setReactions).catch(console.error)
       })
       .subscribe()
     return () => { supabase.removeChannel(ch) }
@@ -110,19 +110,20 @@ export function MemberPage() {
     setPosts(prev => prev.filter(p => p.id !== post.id))
   }
 
-  const handleLike = async (post: Post) => {
-    const existing = likes.find(l => l.post_id === post.id && l.by_name === userName)
+  const handleReact = async (post: Post, emoji: string) => {
+    const existing = reactions.find(r => r.post_id === post.id && r.emoji === emoji && r.by_name === userName)
     if (existing) {
-      setLikes(prev => prev.filter(l => !(l.post_id === post.id && l.by_name === userName)))
-      await removeLike(post.id, userName!)
+      setReactions(prev => prev.filter(r => !(r.post_id === post.id && r.emoji === emoji && r.by_name === userName)))
+      await removeReaction(post.id, emoji, userName!)
     } else {
-      const optimistic: Like = { id: 'tmp', post_id: post.id, by_name: userName!, created_at: new Date().toISOString() }
-      setLikes(prev => [...prev, optimistic])
+      const tmpId = `tmp-${Date.now()}`
+      const optimistic: Reaction = { id: tmpId, post_id: post.id, emoji, by_name: userName!, created_at: new Date().toISOString() }
+      setReactions(prev => [...prev, optimistic])
       try {
-        const real = await addLike(post.id, userName!)
-        setLikes(prev => [...prev.filter(l => l.id !== 'tmp'), real])
+        const real = await addReaction(post.id, emoji, userName!)
+        setReactions(prev => [...prev.filter(r => r.id !== tmpId), real])
       } catch {
-        setLikes(prev => prev.filter(l => l.id !== 'tmp'))
+        setReactions(prev => prev.filter(r => r.id !== tmpId))
       }
     }
   }
@@ -217,10 +218,10 @@ export function MemberPage() {
           <PostTimeline
             userName={userName}
             posts={posts}
-            likes={likes}
+            reactions={reactions}
             onPost={handlePost}
             onDelete={handleDeletePost}
-            onLike={handleLike}
+            onReact={handleReact}
             getImageUrl={getVegetableImageUrl}
           />
         )}

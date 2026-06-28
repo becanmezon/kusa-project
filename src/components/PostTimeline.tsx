@@ -1,16 +1,17 @@
 import { useState, useRef } from 'react'
-import { Feather, Heart, Trash2, ImageIcon, X } from 'lucide-react'
-import type { Post, Like } from '../types'
+import { Feather, Trash2, ImageIcon, X, Plus } from 'lucide-react'
+import type { Post, Reaction } from '../types'
 
 const MAX_IMAGES = 4
+const EMOJIS = ['👍', '❤️', '😂', '🌱', '🎉', '🫡', '😭']
 
 interface Props {
   userName: string
   posts: Post[]
-  likes: Like[]
+  reactions: Reaction[]
   onPost: (body: string, images: File[]) => Promise<void>
   onDelete: (post: Post) => Promise<void>
-  onLike: (post: Post) => Promise<void>
+  onReact: (post: Post, emoji: string) => Promise<void>
   getImageUrl: (path: string) => string
 }
 
@@ -84,7 +85,84 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
   )
 }
 
-export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike, getImageUrl }: Props) {
+// ── リアクションバー ──────────────────────────────────────────
+function ReactionBar({ postId, reactions, userName, onReact }: {
+  postId: string
+  reactions: Reaction[]
+  userName: string
+  onReact: (emoji: string) => void
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  const postReactions = reactions.filter(r => r.post_id === postId)
+  const grouped = EMOJIS
+    .map(emoji => ({
+      emoji,
+      count: postReactions.filter(r => r.emoji === emoji).length,
+      reacted: postReactions.some(r => r.emoji === emoji && r.by_name === userName),
+    }))
+    .filter(g => g.count > 0)
+
+  const handleEmoji = (emoji: string) => {
+    onReact(emoji)
+    setPickerOpen(false)
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center">
+      {grouped.map(g => (
+        <button
+          key={g.emoji}
+          onClick={() => onReact(g.emoji)}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors active:scale-95 ${
+            g.reacted
+              ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
+              : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
+          }`}
+        >
+          <span>{g.emoji}</span>
+          <span className="text-xs tabular-nums">{g.count}</span>
+        </button>
+      ))}
+
+      <div className="relative">
+        <button
+          onClick={() => setPickerOpen(p => !p)}
+          className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
+            pickerOpen
+              ? 'bg-soil-100 border-soil-300 text-soil-600'
+              : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
+          }`}
+        >
+          <Plus size={13} />
+        </button>
+
+        {pickerOpen && (
+          <>
+            {/* 背景クリックで閉じる透明オーバーレイ */}
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setPickerOpen(false)}
+            />
+            <div className="absolute bottom-full mb-1.5 left-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-20">
+              {EMOJIS.map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => handleEmoji(emoji)}
+                  className="text-xl p-1.5 rounded-xl hover:bg-soil-50 active:scale-90 transition-transform"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function PostTimeline({ userName, posts, reactions, onPost, onDelete, onReact, getImageUrl }: Props) {
   const [body,          setBody]          = useState('')
   const [imageFiles,    setImageFiles]    = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -208,9 +286,7 @@ export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike,
       ) : (
         <ul className="space-y-3">
           {posts.map(post => {
-            const postLikes = likes.filter(l => l.post_id === post.id)
-            const isLiked   = postLikes.some(l => l.by_name === userName)
-            const isAuthor  = post.by_name === userName
+            const isAuthor = post.by_name === userName
 
             return (
               <li key={post.id} className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100">
@@ -245,19 +321,14 @@ export function PostTimeline({ userName, posts, likes, onPost, onDelete, onLike,
                   onExpand={setExpandedImg}
                 />
 
-                {/* いいね */}
-                <div className="flex items-center gap-2 pt-2 border-t border-soil-50">
-                  <button
-                    onClick={() => onLike(post)}
-                    className={`flex items-center gap-1.5 transition-colors active:scale-90 ${
-                      isLiked ? 'text-red-500' : 'text-soil-300 hover:text-red-400'
-                    }`}
-                  >
-                    <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
-                  </button>
-                  {isAuthor && postLikes.length > 0 && (
-                    <span className="text-xs text-soil-400 font-medium">{postLikes.length}</span>
-                  )}
+                {/* リアクション */}
+                <div className="pt-2 border-t border-soil-50">
+                  <ReactionBar
+                    postId={post.id}
+                    reactions={reactions}
+                    userName={userName}
+                    onReact={emoji => onReact(post, emoji)}
+                  />
                 </div>
 
               </li>
