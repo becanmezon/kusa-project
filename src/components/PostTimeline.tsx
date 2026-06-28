@@ -95,7 +95,8 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
   userName: string
   onReact: (emoji: string) => void
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerOpen,  setPickerOpen]  = useState(false)
+  const [activeEmoji, setActiveEmoji] = useState<string | null>(null)
 
   const postReactions = reactions.filter(r => r.post_id === postId)
   const grouped = EMOJIS
@@ -106,54 +107,91 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
     }))
     .filter(g => g.count > 0)
 
-  const handleEmoji = (emoji: string) => {
+  const handlePillClick = (emoji: string) => {
+    setPickerOpen(false)
+    setActiveEmoji(prev => (prev === emoji ? null : emoji))
+  }
+
+  const handlePickerToggle = () => {
+    setActiveEmoji(null)
+    setPickerOpen(p => !p)
+  }
+
+  const handlePickerEmoji = (emoji: string) => {
     onReact(emoji)
     setPickerOpen(false)
   }
 
+  const activeNames = activeEmoji
+    ? postReactions.filter(r => r.emoji === activeEmoji).map(r => r.by_name)
+    : []
+
   return (
-    <div className="relative flex flex-wrap gap-1.5 items-center">
-      {grouped.map(g => (
+    <div className="relative">
+      {/* 名前表示用オーバーレイ */}
+      {activeEmoji && (
+        <div className="fixed inset-0 z-10" onClick={() => setActiveEmoji(null)} />
+      )}
+
+      {/* ピル行 */}
+      <div className="relative z-20 flex flex-wrap gap-1.5 items-center">
+        {grouped.map(g => (
+          <button
+            key={g.emoji}
+            onClick={() => handlePillClick(g.emoji)}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors active:scale-95 ${
+              g.reacted
+                ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
+                : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
+            } ${activeEmoji === g.emoji ? 'ring-2 ring-leaf-300 ring-offset-1' : ''}`}
+          >
+            <span>{g.emoji}</span>
+            <span className="text-xs tabular-nums">{g.count}</span>
+          </button>
+        ))}
+
+        {/* 追加ボタン */}
         <button
-          key={g.emoji}
-          onClick={() => onReact(g.emoji)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors active:scale-95 ${
-            g.reacted
-              ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
-              : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
+          onClick={handlePickerToggle}
+          className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
+            pickerOpen
+              ? 'bg-soil-100 border-soil-300 text-soil-600'
+              : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
           }`}
         >
-          <span>{g.emoji}</span>
-          <span className="text-xs tabular-nums">{g.count}</span>
+          <Plus size={13} />
         </button>
-      ))}
 
-      <button
-        onClick={() => setPickerOpen(p => !p)}
-        className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
-          pickerOpen
-            ? 'bg-soil-100 border-soil-300 text-soil-600'
-            : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
-        }`}
-      >
-        <Plus size={13} />
-      </button>
+        {/* 絵文字ピッカー（自分の既リアクションはハイライト表示） */}
+        {pickerOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
+            <div className="absolute bottom-full mb-1.5 right-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-30">
+              {EMOJIS.map(emoji => {
+                const alreadyReacted = postReactions.some(r => r.emoji === emoji && r.by_name === userName)
+                return (
+                  <button
+                    key={emoji}
+                    onClick={() => handlePickerEmoji(emoji)}
+                    className={`text-xl p-1.5 rounded-xl active:scale-90 transition-transform ${
+                      alreadyReacted ? 'bg-leaf-100 ring-1 ring-leaf-400' : 'hover:bg-soil-50'
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
 
-      {pickerOpen && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
-          <div className="absolute bottom-full mb-1.5 right-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-20">
-            {EMOJIS.map(emoji => (
-              <button
-                key={emoji}
-                onClick={() => handleEmoji(emoji)}
-                className="text-xl p-1.5 rounded-xl hover:bg-soil-50 active:scale-90 transition-transform"
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-        </>
+      {/* 誰がリアクションしたかの名前表示 */}
+      {activeEmoji && activeNames.length > 0 && (
+        <div className="relative z-20 mt-1.5 flex items-center gap-1.5 bg-soil-50 rounded-xl px-3 py-1.5 text-sm">
+          <span>{activeEmoji}</span>
+          <span className="text-soil-600">{activeNames.join('、')}</span>
+        </div>
       )}
     </div>
   )
