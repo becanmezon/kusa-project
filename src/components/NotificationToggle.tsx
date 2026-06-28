@@ -46,8 +46,10 @@ export function NotificationToggle({ userName }: Props) {
       } else if (result === 'permission_denied') {
         setBlocked(true)
         showMsg('通知がブロックされています。下の手順で設定を変更してください。', 'err')
+      } else if (result === 'no_vapid_key') {
+        showMsg('VAPIDの公開鍵が未設定です。Vercelの環境変数を確認して再デプロイしてください。', 'err')
       } else {
-        showMsg('登録に失敗しました（VAPIDキーを確認してください）', 'err')
+        showMsg('登録に失敗しました。VAPIDキーのペアが正しいか確認してください。', 'err')
       }
     }
     setLoading(false)

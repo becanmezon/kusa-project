@@ -20,11 +20,17 @@ export async function isSubscribed(): Promise<boolean> {
   }
 }
 
-export type SubscribeResult = 'ok' | 'permission_denied' | 'subscription_failed'
+export type SubscribeResult = 'ok' | 'permission_denied' | 'no_vapid_key' | 'subscription_failed'
 
 export async function subscribePush(userName: string): Promise<SubscribeResult> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return 'subscription_failed'
+  }
+
+  // VAPID公開鍵がビルドに埋め込まれているか確認
+  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY === 'undefined') {
+    console.error('[push] VITE_VAPID_PUBLIC_KEY が設定されていません')
+    return 'no_vapid_key'
   }
 
   const permission = await Notification.requestPermission()
@@ -50,7 +56,7 @@ export async function subscribePush(userName: string): Promise<SubscribeResult> 
 
     return 'ok'
   } catch (err) {
-    console.error('subscribePush:', err)
+    console.error('[push] subscribe error:', err)
     return 'subscription_failed'
   }
 }
