@@ -9,12 +9,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // Service Workerを自動登録・自動更新する
-      workbox: {
-        // キャッシュ対象：JS/CSS/HTML/画像/フォント
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Supabaseへのリクエストはキャッシュしない（常に最新データを取得）
-        navigateFallbackDenylist: [/^\/api/, /^\/rest/, /^\/auth/],
       },
       manifest: {
         name: '草プロジェクト',
@@ -28,9 +27,9 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
-          { src: 'pwa-64x64.png',           sizes: '64x64',   type: 'image/png' },
-          { src: 'pwa-192x192.png',          sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png',          sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-64x64.png',            sizes: '64x64',   type: 'image/png' },
+          { src: 'pwa-192x192.png',           sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png',           sizes: '512x512', type: 'image/png' },
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
