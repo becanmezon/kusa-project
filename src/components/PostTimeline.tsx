@@ -3,7 +3,7 @@ import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, Chevro
 import type { Post, Reaction, Reply } from '../types'
 
 const MAX_IMAGES = 4
-const EMOJIS = ['👍', '❤️', '😂', '🌱', '🎉', '🫡', '😭']
+const EMOJIS = ['❤️', '👍', '🌱', '🎉', '🫡', '😭', '🦀']
 
 interface Props {
   userName: string
@@ -273,13 +273,21 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
   const activeEmoji = lockedEmoji ?? hoverEmoji
 
   const postReactions = reactions.filter(r => r.post_id === postId)
+  // 絵文字ごとに「最初に押された created_at」を求め、その昇順で並べる
   const grouped = EMOJIS
-    .map(emoji => ({
-      emoji,
-      count: postReactions.filter(r => r.emoji === emoji).length,
-      reacted: postReactions.some(r => r.emoji === emoji && r.by_name === userName),
-    }))
-    .filter(g => g.count > 0)
+    .map(emoji => {
+      const hits = postReactions.filter(r => r.emoji === emoji)
+      if (hits.length === 0) return null
+      const firstAt = hits.reduce((min, r) => r.created_at < min ? r.created_at : min, hits[0].created_at)
+      return {
+        emoji,
+        count: hits.length,
+        reacted: hits.some(r => r.by_name === userName),
+        firstAt,
+      }
+    })
+    .filter((g): g is NonNullable<typeof g> => g !== null)
+    .sort((a, b) => a.firstAt < b.firstAt ? -1 : 1)
 
   const activeNames = activeEmoji
     ? postReactions.filter(r => r.emoji === activeEmoji).map(r => r.by_name)
