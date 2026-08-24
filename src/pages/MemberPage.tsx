@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Droplets, History, Loader2, Feather } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
@@ -19,6 +19,10 @@ import {
 import type { Watering, Shift, Post, Reaction, Reply } from '../types'
 
 type Tab = 'whisper' | 'today' | 'history'
+
+const HISTORY_INITIAL_PAST_DAYS = 14
+const HISTORY_LOAD_CHUNK_DAYS   = 30
+const HISTORY_MAX_PAST_DAYS     = 180 // 半年ほど遡れれば6月開始の記録も十分カバーできる
 
 function daysAgo(baseStr: string, n: number): string {
   const [y, m, d] = baseStr.split('-').map(Number)
@@ -59,6 +63,12 @@ export function MemberPage() {
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
 
+  // ── 履歴タブ: 過去方向の読み込み範囲 ──────────────────────
+  const [historyPastDays,   setHistoryPastDays]   = useState(HISTORY_INITIAL_PAST_DAYS)
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false)
+  const historyPastDaysRef = useRef(historyPastDays)
+  useEffect(() => { historyPastDaysRef.current = historyPastDays }, [historyPastDays])
+
   const todayStr    = today()
   const tomorrowStr = tomorrow()
   const todayMorningWatering = waterings.find(w => w.date === todayStr && w.slot === 'morning') ?? null
@@ -89,13 +99,29 @@ export function MemberPage() {
 
   useEffect(() => { if (userName) loadAll() }, [userName, loadAll])
 
+  // ── 履歴タブ: さらに過去の記録を読み込む ─────────────────────
+  const loadMoreHistory = useCallback(async () => {
+    if (loadingMoreHistory || historyPastDays >= HISTORY_MAX_PAST_DAYS) return
+    const nextPastDays = Math.min(historyPastDays + HISTORY_LOAD_CHUNK_DAYS, HISTORY_MAX_PAST_DAYS)
+    setLoadingMoreHistory(true)
+    try {
+      const more = await fetchWaterings(daysAgo(todayStr, nextPastDays), daysAgo(todayStr, historyPastDays + 1))
+      setWaterings(prev => [...prev, ...more])
+      setHistoryPastDays(nextPastDays)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingMoreHistory(false)
+    }
+  }, [historyPastDays, loadingMoreHistory, todayStr])
+
   // ── Realtime 購読 ────────────────────────────────────────────
   useEffect(() => {
     if (!userName) return
     const ch = supabase
       .channel('kusa-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
-        fetchWaterings(daysAgo(todayStr, 14), todayStr).then(setWaterings).catch(console.error)
+        fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr).then(setWaterings).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         fetchPosts().then(setPosts).catch(console.error)
@@ -257,7 +283,14 @@ export function MemberPage() {
           />
         )}
         {tab === 'history' && (
-          <WateringHistory history={buildWateringHistory(waterings)} shifts={shifts} />
+          <WateringHistory
+            history={buildWateringHistory(waterings, historyPastDays + 1)}
+            shifts={shifts}
+            pastDays={historyPastDays}
+            hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
+            loadingMore={loadingMoreHistory}
+            onLoadMore={loadMoreHistory}
+          />
         )}
         {tab === 'whisper' && (
           <PostTimeline

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { CheckCircle, XCircle, CloudRain } from 'lucide-react'
+import { CheckCircle, XCircle, CloudRain, Loader2 } from 'lucide-react'
 import { formatDate, today } from '../lib/utils'
 import type { Watering, Shift } from '../types'
 import type { HistoryEntry } from '../lib/db'
@@ -9,11 +9,11 @@ function isJulySept(dateStr: string): boolean {
   return month >= 7 && month <= 9
 }
 
-/** today+14 → today-14 の 29日分を返す（上が未来、下が過去） */
-function buildTimeline(baseStr: string): string[] {
+/** today+14 → today-pastDays の (14+1+pastDays)日分を返す（上が未来、下が過去） */
+function buildTimeline(baseStr: string, pastDays: number): string[] {
   const [y, m, d] = baseStr.split('-').map(Number)
   const base = new Date(y, m - 1, d)
-  return Array.from({ length: 29 }, (_, i) => {
+  return Array.from({ length: 14 + 1 + pastDays }, (_, i) => {
     const date = new Date(base)
     date.setDate(date.getDate() + 14 - i)
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -69,12 +69,17 @@ function StatusBadge({ watering, compact = false }: { watering: Watering | null;
 interface Props {
   history: HistoryEntry[]
   shifts: Shift[]
+  pastDays: number
+  hasMore: boolean
+  loadingMore: boolean
+  onLoadMore: () => void
 }
 
-export function WateringHistory({ history, shifts }: Props) {
-  const todayStr = today()
-  const dates    = buildTimeline(todayStr)
-  const todayRef = useRef<HTMLLIElement>(null)
+export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMore, onLoadMore }: Props) {
+  const todayStr    = today()
+  const dates       = buildTimeline(todayStr, pastDays)
+  const todayRef    = useRef<HTMLLIElement>(null)
+  const sentinelRef = useRef<HTMLLIElement>(null)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -97,6 +102,20 @@ export function WateringHistory({ history, shifts }: Props) {
     })
     return () => cancelAnimationFrame(id)
   }, [])
+
+  // 一番下までスクロールしたら、さらに過去の記録を読み込む
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMore) onLoadMore()
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, onLoadMore])
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-soil-100 overflow-hidden">
@@ -178,6 +197,18 @@ export function WateringHistory({ history, shifts }: Props) {
             </li>
           )
         })}
+
+        {/* 読み込みトリガー / 終端表示 */}
+        <li ref={sentinelRef} className="px-4 py-3 text-center border-t border-soil-100">
+          {loadingMore ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-soil-400">
+              <Loader2 size={14} className="animate-spin" />
+              過去の記録を読み込み中...
+            </span>
+          ) : !hasMore ? (
+            <span className="text-xs text-soil-300">これより前の記録はありません</span>
+          ) : null}
+        </li>
       </ul>
 
       {/* 凡例 */}
