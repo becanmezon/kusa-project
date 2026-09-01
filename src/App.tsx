@@ -1,10 +1,12 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { MemberPage } from './pages/MemberPage'
 import { AdminPage } from './pages/AdminPage'
+import { DisplayPage } from './pages/DisplayPage'
 
 const router = createBrowserRouter([
-  { path: '/',      element: <MemberPage /> },
-  { path: '/admin', element: <AdminPage /> },
+  { path: '/',        element: <MemberPage /> },
+  { path: '/admin',   element: <AdminPage /> },
+  { path: '/display', element: <DisplayPage /> },
 ])
 
 export default function App() {
