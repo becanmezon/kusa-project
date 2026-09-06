@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Droplets, History, Loader2, Feather } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
@@ -24,6 +24,10 @@ const HISTORY_INITIAL_PAST_DAYS = 14
 const HISTORY_LOAD_CHUNK_DAYS   = 30
 const HISTORY_MAX_PAST_DAYS     = 180 // 半年ほど遡れれば6月開始の記録も十分カバーできる
 
+// 隠しコマンド: 履歴タブを2秒以内に5回連続タップすると展示モード(/display)へ
+const DISPLAY_MODE_TAP_COUNT    = 5
+const DISPLAY_MODE_TAP_WINDOW_MS = 2000
+
 function daysAgo(baseStr: string, n: number): string {
   const [y, m, d] = baseStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)
@@ -41,6 +45,7 @@ function searchParamToTab(p: string | null): Tab {
 export function MemberPage() {
   const [userName, setUserName] = useState<string | null>(getSavedName() || null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const tab = searchParamToTab(searchParams.get('tab'))
 
@@ -54,6 +59,22 @@ export function MemberPage() {
       }
       return next
     }, { replace: true }) // 履歴を汚さず上書き
+  }
+
+  // ── 隠しコマンド: 履歴タブ連打で展示モードへ ─────────────────
+  const historyTapRef = useRef({ count: 0, lastTapAt: 0 })
+  const handleHistoryTabTap = () => {
+    changeTab('history')
+
+    const now = Date.now()
+    const tapState = historyTapRef.current
+    tapState.count = (now - tapState.lastTapAt <= DISPLAY_MODE_TAP_WINDOW_MS) ? tapState.count + 1 : 1
+    tapState.lastTapAt = now
+
+    if (tapState.count >= DISPLAY_MODE_TAP_COUNT) {
+      tapState.count = 0
+      navigate('/display')
+    }
   }
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
@@ -337,9 +358,9 @@ export function MemberPage() {
           <div className="h-14" />
         </div>
 
-        {/* 履歴タブ */}
+        {/* 履歴タブ（2秒以内に5回連続タップで展示モードへ） */}
         <button
-          onClick={() => changeTab('history')}
+          onClick={handleHistoryTabTap}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
             tab === 'history' ? 'text-leaf-600' : 'text-soil-400'
           }`}
