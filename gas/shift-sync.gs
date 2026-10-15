@@ -10,7 +10,8 @@
  *               N4="③" O4=迫田 P4=日上
  *
  * 初回だけ: スクリプトプロパティに SUPABASE_URL と SUPABASE_ANON_KEY を登録し、
- *           setupTrigger() を1回実行する。
+ *           setupTrigger() を1回実行する（1時間ごとに自動反映）。
+ * サイトの「更新」ボタン用: 「デプロイ」→「ウェブアプリ」で公開すると doGet() が呼ばれて即反映される。
  */
 
 const SOURCE_SPREADSHEET_ID = '1_-RvDGJxyyIflvK3ZasgGC6dO0sm2sRbIGAsAnOHCfE'
@@ -18,6 +19,9 @@ const SOURCE_SHEET_NAME = 'シフト'
 
 // 表記ゆれの統一
 const NAME_FIX = { '柿崎': '柿﨑' }
+
+// 草プロのメンバーではない人（シフトに入っていても水やり担当にしない）
+const NON_MEMBERS = ['沼田', '今川', '香川', '樋口', '宮本', 'キム']
 
 /** メイン処理：シートを読んで Supabase に反映する */
 function syncShifts() {
@@ -41,7 +45,7 @@ function syncShifts() {
       const mark = String(values[r][c]).trim()
       const names = [values[r][c + 1], values[r][c + 2]]
         .map(cleanName)
-        .filter(function (n) { return n !== '' })
+        .filter(function (n) { return n !== '' && NON_MEMBERS.indexOf(n) === -1 })
       if (mark === '①') shift.morning_names = names
       if (mark === '③') shift.evening_names = names
     }
@@ -50,7 +54,7 @@ function syncShifts() {
 
   if (rows.length === 0) {
     console.log('日付が1つも読み取れませんでした。シートの形が変わっていないか確認してください')
-    return
+    return 0
   }
 
   const res = UrlFetchApp.fetch(url.replace(/\/$/, '') + '/rest/v1/shifts?on_conflict=date', {
@@ -72,6 +76,22 @@ function syncShifts() {
   rows.forEach(function (s) {
     console.log(s.date + '  朝: ' + (s.morning_names.join('・') || 'なし') + '  夜: ' + (s.evening_names.join('・') || 'なし'))
   })
+  return rows.length
+}
+
+/** サイトの「更新」ボタンから呼ばれる（ウェブアプリとして公開して使う） */
+function doGet() {
+  const lock = LockService.getScriptLock()
+  let result
+  try {
+    lock.waitLock(20000)
+    result = { ok: true, days: syncShifts() }
+  } catch (e) {
+    result = { ok: false, error: String(e) }
+  } finally {
+    lock.releaseLock()
+  }
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON)
 }
 
 /** 1行目のセル（"10/01" の文字列 or 日付型）を "YYYY-MM-DD" にする。日付でなければ null */
@@ -101,12 +121,11 @@ function cleanName(v) {
 
 function pad(n) { return ('0' + n).slice(-2) }
 
-/** 初回だけ実行：毎朝6時台と毎晩20時台に自動で syncShifts を動かす */
+/** 実行：1時間に1回、自動で syncShifts を動かす（前の設定は消してから作り直す） */
 function setupTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'syncShifts') ScriptApp.deleteTrigger(t)
   })
-  ScriptApp.newTrigger('syncShifts').timeBased().everyDays(1).atHour(6).create()
-  ScriptApp.newTrigger('syncShifts').timeBased().everyDays(1).atHour(20).create()
-  console.log('✅ 自動実行を設定しました（毎日6時台・20時台）')
+  ScriptApp.newTrigger('syncShifts').timeBased().everyHours(1).create()
+  console.log('✅ 自動実行を設定しました（1時間ごと）')
 }

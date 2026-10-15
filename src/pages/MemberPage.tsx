@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Droplets, History, Loader2, Feather } from 'lucide-react'
+import { Droplets, History, Loader2, Feather, RefreshCw } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
 import { PostTimeline } from '../components/PostTimeline'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
+import { requestShiftSync } from '../lib/shiftSync'
 import {
   fetchWaterings, upsertWatering, deleteWateringByDateSlot,
   fetchShifts,
@@ -120,6 +121,33 @@ export function MemberPage() {
 
   useEffect(() => { if (userName) loadAll() }, [userName, loadAll])
 
+  // ── 更新ボタン: スプシのシフトを反映 → 画面のデータを取り直す ──
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
+  const handleRefresh = async () => {
+    if (refreshing) return
+    setRefreshing(true); setRefreshMsg(null)
+    const sync = await requestShiftSync()
+    try {
+      const [w, s, p, r, rep] = await Promise.all([
+        fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr),
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
+        fetchPosts(),
+        fetchReactions(),
+        fetchReplies(),
+      ])
+      setWaterings(w); setShifts(s)
+      setPosts(p); setReactions(r); setReplies(rep)
+      setRefreshMsg(sync === 'failed' ? 'シフトの取り込みに失敗しました（表示は更新済み）' : '最新の状態に更新しました')
+    } catch (e) {
+      console.error(e)
+      setRefreshMsg('更新に失敗しました')
+    } finally {
+      setRefreshing(false)
+      setTimeout(() => setRefreshMsg(null), 3000)
+    }
+  }
+
   // ── 履歴タブ: さらに過去の記録を読み込む ─────────────────────
   const loadMoreHistory = useCallback(async () => {
     if (loadingMoreHistory || historyPastDays >= HISTORY_MAX_PAST_DAYS) return
@@ -143,6 +171,9 @@ export function MemberPage() {
       .channel('kusa-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
         fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr).then(setWaterings).catch(console.error)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)).then(setShifts).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         fetchPosts().then(setPosts).catch(console.error)
@@ -276,6 +307,15 @@ export function MemberPage() {
           <span className="text-2xl">🌱</span>
           <h1 className="font-bold text-base">草プロジェクト</h1>
         </div>
+        <div className="flex items-center gap-3">
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          aria-label="最新の状態に更新"
+          className="text-soil-200 disabled:opacity-60 p-1 -m-1"
+        >
+          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+        </button>
         <button
           onClick={() => {
             if (confirm(`名前を変更しますか？（現在: ${userName}）`)) {
@@ -287,7 +327,13 @@ export function MemberPage() {
         >
           {userName}
         </button>
+        </div>
       </header>
+      {refreshMsg && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-soil-700 text-white text-xs px-4 py-2 rounded-full shadow">
+          {refreshMsg}
+        </div>
+      )}
 
       {/* メインコンテンツ */}
       <main className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
