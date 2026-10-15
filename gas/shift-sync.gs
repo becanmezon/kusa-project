@@ -13,8 +13,7 @@
  *           setupTrigger() を1回実行する（1時間ごとに自動反映）。
  * サイトの「更新」ボタン用: 「デプロイ」→「ウェブアプリ」で公開すると doGet() が呼ばれて即反映される。
  *
- * 水やり未完了メール: スクリプトプロパティ NOTIFY_EMAIL に送り先を登録すると、
- *   朝は11時、夜は20時の時点で記録（水やり済み or 雨だった）が無ければメールを送る。
+ * ※水やり未完了メールは別スクリプト（gas/mail-notify.gs、kusapurobekan@gmail.com で実行）に移動。
  */
 
 const SOURCE_SPREADSHEET_ID = '1_-RvDGJxyyIflvK3ZasgGC6dO0sm2sRbIGAsAnOHCfE'
@@ -124,87 +123,13 @@ function cleanName(v) {
 
 function pad(n) { return ('0' + n).slice(-2) }
 
-// ─── 水やり未完了メール ─────────────────────────────────────
-
-const APP_URL = 'https://kusa-project-6rdu.vercel.app'
-// メールの送り主として受信側に表示される名前（アドレスは変わらない）
-const MAIL_SENDER_NAME = '草プロジェクト'
-// この日以降は通年で朝・夜の2回。それより前は7〜9月だけ夜あり（アプリと同じルール）
-const DUAL_SLOT_FROM = '2026-10-17'
-
-function hasEvening(dateStr) {
-  if (dateStr >= DUAL_SLOT_FROM) return true
-  const m = Number(dateStr.slice(5, 7))
-  return m >= 7 && m <= 9
-}
-
-function todayJst() {
-  return Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd')
-}
-
-function supabaseGet(path) {
-  const props = PropertiesService.getScriptProperties()
-  const url = props.getProperty('SUPABASE_URL').replace(/\/$/, '')
-  const key = props.getProperty('SUPABASE_ANON_KEY')
-  const res = UrlFetchApp.fetch(url + '/rest/v1/' + path, {
-    headers: { apikey: key, Authorization: 'Bearer ' + key },
-    muteHttpExceptions: true,
-  })
-  if (res.getResponseCode() >= 300) throw new Error('Supabaseの読み込みに失敗 (' + res.getResponseCode() + '): ' + res.getContentText())
-  return JSON.parse(res.getContentText())
-}
-
-/** その日・その枠の水やりが未完了ならメールを送る */
-function checkAndNotify(slot) {
-  const to = PropertiesService.getScriptProperties().getProperty('NOTIFY_EMAIL')
-  if (!to) throw new Error('スクリプトプロパティに NOTIFY_EMAIL（送り先メールアドレス）を設定してください')
-
-  const date = todayJst()
-  if (slot === 'evening' && !hasEvening(date)) {
-    console.log(date + ' は夜の水やりが無い日なのでスキップ')
-    return
-  }
-
-  const done = supabaseGet('waterings?select=id&date=eq.' + date + '&slot=eq.' + slot)
-  if (done.length > 0) {
-    console.log(date + ' の' + (slot === 'morning' ? '朝' : '夜') + 'は記録済みなので送信しません')
-    return
-  }
-
-  const shift = supabaseGet('shifts?select=morning_names,evening_names&date=eq.' + date)[0]
-  const names = shift ? (slot === 'morning' ? shift.morning_names : shift.evening_names) : []
-  const who = names && names.length ? names.join('・') : '担当なし'
-  const label = slot === 'morning' ? '朝' : '夜'
-  const deadline = slot === 'morning' ? '11時' : '20時'
-  const md = Number(date.slice(5, 7)) + '/' + Number(date.slice(8, 10))
-
-  MailApp.sendEmail({
-    to: to,
-    name: MAIL_SENDER_NAME,
-    subject: '【草プロ】' + md + ' ' + label + 'の水やりがまだ記録されていません',
-    body:
-      md + ' の' + label + 'の水やりが、' + deadline + '時点でまだ記録されていません。\n\n' +
-      '担当: ' + who + '\n\n' +
-      '水やりした場合や雨だった場合は、アプリで記録をお願いします。\n' + APP_URL + '\n',
-  })
-  console.log('📧 ' + to + ' に送信しました（' + md + ' ' + label + ' / 担当: ' + who + '）')
-}
-
-function checkMorning() { checkAndNotify('morning') }
-function checkEvening() { checkAndNotify('evening') }
-
-/** 実行：自動実行をまとめて設定（前の設定は消してから作り直す）
- *  - シフト取り込み: 1時間ごと
- *  - 朝の未完了チェック: 毎日11時台のはじめ
- *  - 夜の未完了チェック: 毎日20時台のはじめ
- */
+/** 実行：シフト取り込みを1時間ごとに自動実行する（前の設定は消してから作り直す）
+ *  以前このスクリプトにあったメール用の自動実行（checkMorning / checkEvening）もここで消える */
 function setupTrigger() {
   const handlers = ['syncShifts', 'checkMorning', 'checkEvening']
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (handlers.indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t)
   })
   ScriptApp.newTrigger('syncShifts').timeBased().everyHours(1).create()
-  ScriptApp.newTrigger('checkMorning').timeBased().everyDays(1).atHour(11).nearMinute(0).inTimezone('Asia/Tokyo').create()
-  ScriptApp.newTrigger('checkEvening').timeBased().everyDays(1).atHour(20).nearMinute(0).inTimezone('Asia/Tokyo').create()
-  console.log('✅ 自動実行を設定しました（シフト取り込み: 1時間ごと / 朝チェック: 11時 / 夜チェック: 20時）')
+  console.log('✅ 自動実行を設定しました（シフト取り込み: 1時間ごと）')
 }
