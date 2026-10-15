@@ -77,6 +77,22 @@ export function MemberPage() {
       navigate('/display')
     }
   }
+
+  // ── 隠しコマンド: Wタブ連打で管理画面へ ──────────────────────
+  const whisperTapRef = useRef({ count: 0, lastTapAt: 0 })
+  const handleWhisperTabTap = () => {
+    changeTab('whisper')
+
+    const now = Date.now()
+    const tapState = whisperTapRef.current
+    tapState.count = (now - tapState.lastTapAt <= DISPLAY_MODE_TAP_WINDOW_MS) ? tapState.count + 1 : 1
+    tapState.lastTapAt = now
+
+    if (tapState.count >= DISPLAY_MODE_TAP_COUNT) {
+      tapState.count = 0
+      navigate('/admin')
+    }
+  }
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
@@ -385,9 +401,9 @@ export function MemberPage() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
 
-        {/* W タブ */}
+        {/* W タブ（2秒以内に5回連続タップで管理画面へ） */}
         <button
-          onClick={() => changeTab('whisper')}
+          onClick={handleWhisperTabTap}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
             tab === 'whisper' ? 'text-leaf-600' : 'text-soil-400'
           }`}
