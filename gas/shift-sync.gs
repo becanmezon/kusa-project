@@ -1,7 +1,7 @@
 /**
  * 草プロジェクト シフト自動連携（Google Apps Script）
  *
- * 夏目さんの「別館シフト転送スプシ」の「シフト」シートを読み、
+ * 「草プロ転送用シフト」（別館シフト転送スプシのコピー）の「シフト」シートを読み、
  * ①コマ = 朝担当 / ③コマ = 夜担当 として Supabase の shifts テーブルに書き込む。
  *
  * シートの形（1行目に日付、2〜4行目に①②③。日付の右2列に担当者2人）:
@@ -13,7 +13,7 @@
  *           setupTrigger() を1回実行する。
  */
 
-const SOURCE_SPREADSHEET_ID = '1pzcEtCwDLjfTBRjYuoNpkRAOn9dvULFAImIG4-aZdNw'
+const SOURCE_SPREADSHEET_ID = '1_-RvDGJxyyIflvK3ZasgGC6dO0sm2sRbIGAsAnOHCfE'
 const SOURCE_SHEET_NAME = 'シフト'
 
 // 表記ゆれの統一
