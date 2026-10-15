@@ -127,6 +127,8 @@ function pad(n) { return ('0' + n).slice(-2) }
 // ─── 水やり未完了メール ─────────────────────────────────────
 
 const APP_URL = 'https://kusa-project-6rdu.vercel.app'
+// メールの送り主として受信側に表示される名前（アドレスは変わらない）
+const MAIL_SENDER_NAME = '草プロジェクト'
 // この日以降は通年で朝・夜の2回。それより前は7〜9月だけ夜あり（アプリと同じルール）
 const DUAL_SLOT_FROM = '2026-10-17'
 
@@ -178,6 +180,7 @@ function checkAndNotify(slot) {
 
   MailApp.sendEmail({
     to: to,
+    name: MAIL_SENDER_NAME,
     subject: '【草プロ】' + md + ' ' + label + 'の水やりがまだ記録されていません',
     body:
       md + ' の' + label + 'の水やりが、' + deadline + '時点でまだ記録されていません。\n\n' +
