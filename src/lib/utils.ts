@@ -1,6 +1,7 @@
 // ─── テスト用日付オーバーライド ──────────────────────────────
 // ?testdate=YYYY-MM-DD をURLに付けると「今日」をその日付として扱う。
-// 確認が終わったら getEffectiveDate() を削除し、today()/tomorrow()/getActiveSlots() を
+// 例: /?testdate=2026-10-17 や /display?testdate=2026-10-17 で朝夜2枠の表示を確認できる。
+// 確認が終わったら getEffectiveDate() を削除し、today()/tomorrow()/effectiveNow() を
 // new Date() 直接呼び出しに戻すだけで完全に除去できる。
 
 function getEffectiveDate(): Date {
@@ -30,6 +31,17 @@ export function tomorrow(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/**
+ * 「今」を Date で返す。日付は ?testdate で上書きでき、時刻は実時計のまま。
+ * 展示モードのように「日付＝テスト日付／時刻＝現在時刻」で判定したい箇所で使う。
+ */
+export function effectiveNow(): Date {
+  const real = new Date()
+  const d = getEffectiveDate() // ?testdate があればその日の 00:00
+  d.setHours(real.getHours(), real.getMinutes(), real.getSeconds(), real.getMilliseconds())
+  return d
+}
+
 /** "YYYY-MM-DD" → "M月D日(曜)" 形式に変換 */
 export function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -42,17 +54,6 @@ export function formatDate(dateStr: string): string {
 export function formatTime(isoStr: string): string {
   const d = new Date(isoStr)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-/**
- * 今日の月に基づいて表示すべき担当枠を返す
- * - 7〜9月: 朝・夜の両方
- * - それ以外（6月など）: 朝のみ
- * 「今日の日付」を基準にする仕様
- */
-export function getActiveSlots(): ('morning' | 'evening')[] {
-  const month = getEffectiveDate().getMonth() + 1 // ?testdate で上書き可
-  return month >= 7 && month <= 9 ? ['morning', 'evening'] : ['morning']
 }
 
 /** localStorage から名前を取得 */

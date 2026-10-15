@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Droplets, CheckCircle, CloudRain, Trash2 } from 'lucide-react'
 import { fetchWaterings, fetchShifts, upsertWatering, deleteWateringByDateSlot } from '../lib/db'
-import { formatDate, formatTime } from '../lib/utils'
+import { formatDate, formatTime, effectiveNow } from '../lib/utils'
+import { isDualSlotDate, type Slot } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
-
-type Slot = 'morning' | 'evening'
 
 const REFRESH_MS = 30_000
 const NO_SHIFT_NAME = '別館分室'
+const EVENING_START_HOUR = 15
 
 function formatDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** 0:00〜15:00 → 朝、15:00〜23:59 → 夜（実時刻・?testdate の影響を受けない） */
+/**
+ * 表示中の枠を返す。
+ * - 朝のみの日（2枠制でない日）は終日「朝」のまま
+ * - 2枠制の日は 0:00〜15:00 → 朝、15:00〜23:59 → 夜
+ * 時刻は実時計、日付は ?testdate で上書き可（effectiveNow() 由来の Date を渡す）
+ */
 function getCurrentSlot(d: Date): Slot {
-  return d.getHours() < 15 ? 'morning' : 'evening'
+  if (!isDualSlotDate(formatDateStr(d))) return 'morning'
+  return d.getHours() < EVENING_START_HOUR ? 'morning' : 'evening'
 }
 
 function getRecorderName(shift: Shift | null, slot: Slot): string {
@@ -25,7 +31,7 @@ function getRecorderName(shift: Shift | null, slot: Slot): string {
 
 /** 展示スマホ専用の常設ディスプレイ画面（/display）。メンバー画面には影響しない独立ページ。 */
 export function DisplayPage() {
-  const [now,           setNow]           = useState(() => new Date())
+  const [now,           setNow]           = useState(() => effectiveNow())
   const [watering,      setWatering]      = useState<Watering | null>(null)
   const [shift,         setShift]         = useState<Shift | null>(null)
   const [loading,       setLoading]       = useState(true)
@@ -38,7 +44,7 @@ export function DisplayPage() {
 
   // 最新状態の取得。時刻・スロットもここで再計算するので、日付/15時をまたいでも次の更新で自動的に切り替わる
   const refresh = useCallback(async () => {
-    const at = new Date()
+    const at = effectiveNow()
     const ds = formatDateStr(at)
     const sl = getCurrentSlot(at)
     try {
@@ -83,17 +89,17 @@ export function DisplayPage() {
   }
 
   const handleWater = () => runAction(async () => {
-    const at = new Date()
+    const at = effectiveNow()
     await upsertWatering(formatDateStr(at), getRecorderName(shift, getCurrentSlot(at)), null, 'watered', getCurrentSlot(at))
   })
 
   const handleRain = () => runAction(async () => {
-    const at = new Date()
+    const at = effectiveNow()
     await upsertWatering(formatDateStr(at), getRecorderName(shift, getCurrentSlot(at)), null, 'rain', getCurrentSlot(at))
   })
 
   const handleUndo = () => runAction(async () => {
-    const at = new Date()
+    const at = effectiveNow()
     await deleteWateringByDateSlot(formatDateStr(at), getCurrentSlot(at))
   })
 

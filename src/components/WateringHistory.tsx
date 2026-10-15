@@ -1,13 +1,9 @@
 import { useRef, useEffect } from 'react'
 import { CheckCircle, XCircle, CloudRain, Loader2 } from 'lucide-react'
 import { formatDate, today } from '../lib/utils'
+import { isDualSlotDate } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
 import type { HistoryEntry } from '../lib/db'
-
-function isJulySept(dateStr: string): boolean {
-  const month = parseInt(dateStr.split('-')[1], 10)
-  return month >= 7 && month <= 9
-}
 
 /** today+14 → today-pastDays の (14+1+pastDays)日分を返す（上が未来、下が過去） */
 function buildTimeline(baseStr: string, pastDays: number): string[] {
@@ -123,7 +119,8 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
         {dates.map(date => {
           const isToday  = date === todayStr
           const isFuture = date > todayStr
-          const dual     = isJulySept(date)
+          // 未来の担当予定／過去の実績どちらも、その日のルールで朝夜2行か1行かを決める
+          const dual     = isDualSlotDate(date)
 
           // ── 未来: 担当予定 ─────────────────────────────
           if (isFuture) {

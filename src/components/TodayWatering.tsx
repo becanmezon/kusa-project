@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Droplets, CheckCircle, CloudRain, Trash2 } from 'lucide-react'
 import type { Watering, Shift } from '../types'
-import { today, tomorrow, formatDate, formatTime, getActiveSlots } from '../lib/utils'
+import { today, tomorrow, formatDate, formatTime } from '../lib/utils'
+import { isDualSlotDate } from '../lib/wateringRule'
 
 interface Props {
   userName: string
@@ -164,15 +165,20 @@ export function TodayWatering({
   userName, todayMorningWatering, todayEveningWatering,
   todayShift, tomorrowShift, onWater, onRain, onUndo,
 }: Props) {
-  const slots = getActiveSlots()
-  const showEvening = slots.includes('evening')
+  const todayStr    = today()
+  const tomorrowStr = tomorrow()
+
+  // 朝／夜どちらの枠を出すかは wateringRule.ts の判定に従う。
+  // 明日の担当は「明日の日付」で判定するので、ルール切り替え日の前日でも正しく2枠表示になる。
+  const showEvening         = isDualSlotDate(todayStr)
+  const showTomorrowEvening = isDualSlotDate(tomorrowStr)
 
   return (
     <div className="space-y-4">
 
       {/* 日付ヘッダー */}
       <div className="px-1">
-        <p className="text-sm font-medium text-soil-500">{formatDate(today())} の水やり</p>
+        <p className="text-sm font-medium text-soil-500">{formatDate(todayStr)} の水やり</p>
         <p className="text-xs text-soil-400">記録者: {userName}</p>
       </div>
 
@@ -188,7 +194,7 @@ export function TodayWatering({
         onUndo={onUndo}
       />
 
-      {/* 夜枠（7〜9月のみ） */}
+      {/* 夜枠（2枠制の日のみ表示） */}
       {showEvening && (
         <SlotCard
           label="夜の水やり"
@@ -204,13 +210,13 @@ export function TodayWatering({
 
       {/* 明日の担当 */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100">
-        <p className="text-xs text-soil-400 mb-2">明日（{formatDate(tomorrow())}）の担当</p>
+        <p className="text-xs text-soil-400 mb-2">明日（{formatDate(tomorrowStr)}）の担当</p>
         <div className="space-y-1 text-sm">
           <div className="flex items-baseline gap-1.5">
             <span className="text-soil-400 shrink-0">☀️ 朝:</span>
             <ShiftNames shift={tomorrowShift} slot="morning" />
           </div>
-          {showEvening && (
+          {showTomorrowEvening && (
             <div className="flex items-baseline gap-1.5">
               <span className="text-soil-400 shrink-0">🌙 夜:</span>
               <ShiftNames shift={tomorrowShift} slot="evening" />
