@@ -104,7 +104,7 @@ export function MemberPage() {
     try {
       const [w, s, p, r, rep] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
-        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)),
         fetchPosts(),
         fetchReactions(),
         fetchReplies(),
@@ -131,7 +131,7 @@ export function MemberPage() {
     try {
       const [w, s, p, r, rep] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr),
-        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)),
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)),
         fetchPosts(),
         fetchReactions(),
         fetchReplies(),
@@ -173,7 +173,7 @@ export function MemberPage() {
         fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr).then(setWaterings).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
-        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -14)).then(setShifts).catch(console.error)
+        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)).then(setShifts).catch(console.error)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         fetchPosts().then(setPosts).catch(console.error)

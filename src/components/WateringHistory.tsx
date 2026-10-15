@@ -5,13 +5,16 @@ import { isDualSlotDate } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
 import type { HistoryEntry } from '../lib/db'
 
-/** today+14 → today-pastDays の (14+1+pastDays)日分を返す（上が未来、下が過去） */
+/** 未来に表示する日数（1週間先まで） */
+const FUTURE_DAYS = 7
+
+/** today+FUTURE_DAYS → today-pastDays の日付を返す（上が未来、下が過去） */
 function buildTimeline(baseStr: string, pastDays: number): string[] {
   const [y, m, d] = baseStr.split('-').map(Number)
   const base = new Date(y, m - 1, d)
-  return Array.from({ length: 14 + 1 + pastDays }, (_, i) => {
+  return Array.from({ length: FUTURE_DAYS + 1 + pastDays }, (_, i) => {
     const date = new Date(base)
-    date.setDate(date.getDate() + 14 - i)
+    date.setDate(date.getDate() + FUTURE_DAYS - i)
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   })
 }
