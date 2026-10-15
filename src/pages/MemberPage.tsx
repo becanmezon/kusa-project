@@ -8,6 +8,7 @@ import { PostTimeline } from '../components/PostTimeline'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { requestShiftSync } from '../lib/shiftSync'
+import { useIsDesktop } from '../lib/useMediaQuery'
 import {
   fetchWaterings, upsertWatering, deleteWateringByDateSlot,
   fetchShifts,
@@ -47,6 +48,7 @@ export function MemberPage() {
   const [userName, setUserName] = useState<string | null>(getSavedName() || null)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const isDesktop = useIsDesktop()
 
   const tab = searchParamToTab(searchParams.get('tab'))
 
@@ -277,7 +279,7 @@ export function MemberPage() {
   // ── ローディング ─────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
+      <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-6xl mx-auto">
         <header className="bg-soil-700 text-white px-4 py-3 flex items-center gap-2">
           <span className="text-2xl">🌱</span>
           <h1 className="font-bold text-base">草プロジェクト</h1>
@@ -295,7 +297,7 @@ export function MemberPage() {
   // ── エラー ───────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
+      <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-6xl mx-auto">
         <header className="bg-soil-700 text-white px-4 py-3 flex items-center gap-2">
           <span className="text-2xl">🌱</span>
           <h1 className="font-bold text-base">草プロジェクト</h1>
@@ -313,7 +315,7 @@ export function MemberPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col max-w-md mx-auto">
+    <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-6xl mx-auto">
       {/* テストモードバナー */}
       {isTestMode() && (
         <div className="bg-yellow-300 text-yellow-900 text-xs font-bold px-4 py-2 text-center">
@@ -327,6 +329,24 @@ export function MemberPage() {
           <span className="text-2xl">🌱</span>
           <h1 className="font-bold text-base">草プロジェクト</h1>
         </div>
+        {/* PC用タブ（スマホでは下のタブを使う） */}
+        <nav className="hidden lg:flex items-center gap-1">
+          {([
+            { key: 'whisper', label: 'W',    icon: <Feather size={16} />,  onClick: handleWhisperTabTap },
+            { key: 'today',   label: '今日', icon: <Droplets size={16} />, onClick: () => changeTab('today') },
+            { key: 'history', label: '履歴', icon: <History size={16} />,  onClick: handleHistoryTabTap },
+          ] as const).map(t => (
+            <button
+              key={t.key}
+              onClick={t.onClick}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                tab === t.key ? 'bg-leaf-600 text-white' : 'text-soil-200 hover:bg-soil-600'
+              }`}
+            >
+              {t.icon}{t.label}
+            </button>
+          ))}
+        </nav>
         <div className="flex items-center gap-3">
         <button
           onClick={handleRefresh}
@@ -356,8 +376,10 @@ export function MemberPage() {
       )}
 
       {/* メインコンテンツ */}
-      <main className="flex-1 px-4 py-4 pb-24 overflow-y-auto">
+      <main className="flex-1 px-4 py-4 pb-24 lg:px-8 lg:py-6 lg:pb-8 overflow-y-auto">
         {tab === 'today' && (
+          <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
+          <div className="lg:col-span-5">
           <TodayWatering
             userName={userName}
             todayMorningWatering={todayMorningWatering}
@@ -368,8 +390,24 @@ export function MemberPage() {
             onRain={handleRain}
             onUndo={handleUndo}
           />
+          </div>
+          {/* PCでは今日の画面の右に履歴を並べて表示 */}
+          {isDesktop && (
+            <div className="lg:col-span-7 sticky top-20 h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
+              <WateringHistory
+                history={buildWateringHistory(waterings, historyPastDays + 1)}
+                shifts={shifts}
+                pastDays={historyPastDays}
+                hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
+                loadingMore={loadingMoreHistory}
+                onLoadMore={loadMoreHistory}
+              />
+            </div>
+          )}
+          </div>
         )}
         {tab === 'history' && (
+          <div className="lg:max-w-3xl lg:mx-auto">
           <WateringHistory
             history={buildWateringHistory(waterings, historyPastDays + 1)}
             shifts={shifts}
@@ -378,8 +416,10 @@ export function MemberPage() {
             loadingMore={loadingMoreHistory}
             onLoadMore={loadMoreHistory}
           />
+          </div>
         )}
         {tab === 'whisper' && (
+          <div className="lg:max-w-2xl lg:mx-auto">
           <PostTimeline
             userName={userName}
             posts={posts}
@@ -392,12 +432,13 @@ export function MemberPage() {
             onDeleteReply={handleDeleteReply}
             getImageUrl={getVegetableImageUrl}
           />
+          </div>
         )}
       </main>
 
       {/* ボトムナビ */}
       <nav
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible z-40"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible z-40 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
 
