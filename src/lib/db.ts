@@ -167,6 +167,17 @@ export async function insertPost(
   return data
 }
 
+export async function updatePostBody(id: string, body: string): Promise<Post> {
+  const { data, error } = await supabase
+    .from('posts')
+    .update({ body, edited_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deletePost(id: string, image_paths: string[]): Promise<void> {
   if (image_paths.length > 0) {
     await supabase.storage.from('veg-photos').remove(image_paths)

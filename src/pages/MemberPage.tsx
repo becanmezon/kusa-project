@@ -14,7 +14,7 @@ import {
   fetchShifts,
   getVegetableImageUrl,
   buildWateringHistory,
-  fetchPosts, insertPost, deletePost, uploadPostImage,
+  fetchPosts, insertPost, updatePostBody, deletePost, uploadPostImage,
   fetchReactions, addReaction, removeReaction,
   fetchReplies, insertReply, deleteReply,
 } from '../lib/db'
@@ -233,6 +233,11 @@ export function MemberPage() {
     setPosts(prev => [post, ...prev])
   }
 
+  const handleEditPost = async (post: Post, body: string) => {
+    const saved = await updatePostBody(post.id, body)
+    setPosts(prev => prev.map(p => (p.id === post.id ? saved : p)))
+  }
+
   const handleDeletePost = async (post: Post) => {
     await deletePost(post.id, post.image_paths)
     setPosts(prev => prev.filter(p => p.id !== post.id))
@@ -426,6 +431,7 @@ export function MemberPage() {
             reactions={reactions}
             replies={replies}
             onPost={handlePost}
+            onEdit={handleEditPost}
             onDelete={handleDeletePost}
             onReact={handleReact}
             onReply={handleReply}

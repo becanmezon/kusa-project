@@ -32,6 +32,7 @@ export interface Post {
   image_paths: string[]
   by_name: string
   created_at: string
+  edited_at?: string | null
 }
 
 export interface Like {

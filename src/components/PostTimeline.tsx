@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 import type { Post, Reaction, Reply } from '../types'
 
 const MAX_IMAGES = 4
@@ -11,6 +11,7 @@ interface Props {
   reactions: Reaction[]
   replies: Reply[]
   onPost: (body: string, images: File[]) => Promise<void>
+  onEdit: (post: Post, body: string) => Promise<void>
   onDelete: (post: Post) => Promise<void>
   onReact: (post: Post, emoji: string) => Promise<void>
   onReply: (post: Post, body: string) => Promise<void>
@@ -419,9 +420,30 @@ function ReplyForm({ onSubmit }: { onSubmit: (body: string) => Promise<void> }) 
 
 export function PostTimeline({
   userName, posts, reactions, replies,
-  onPost, onDelete, onReact, onReply, onDeleteReply,
+  onPost, onEdit, onDelete, onReact, onReply, onDeleteReply,
   getImageUrl,
 }: Props) {
+  const [editingId,  setEditingId]  = useState<string | null>(null)
+  const [editBody,   setEditBody]   = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  const startEdit = (post: Post) => { setEditingId(post.id); setEditBody(post.body) }
+  const cancelEdit = () => { setEditingId(null); setEditBody('') }
+  const saveEdit = async (post: Post) => {
+    const next = editBody.trim()
+    if (!next && post.image_paths.length === 0) return
+    if (next === post.body) { cancelEdit(); return }
+    setSavingEdit(true)
+    try {
+      await onEdit(post, next)
+      cancelEdit()
+    } catch (e) {
+      console.error(e)
+      alert('編集の保存に失敗しました')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
   const [body,           setBody]           = useState('')
   const [imageFiles,     setImageFiles]     = useState<File[]>([])
   const [imagePreviews,  setImagePreviews]  = useState<string[]>([])
@@ -560,19 +582,53 @@ export function PostTimeline({
                   <div className="flex items-baseline gap-2">
                     <span className="font-bold text-soil-700 text-sm">{post.by_name}</span>
                     <span className="text-xs text-soil-400">{timeLabel(post.created_at)}</span>
+                    {post.edited_at && <span className="text-xs text-soil-300">（編集済み）</span>}
                   </div>
-                  {isAuthor && (
-                    <button
-                      onClick={() => { if (confirm('この投稿を削除しますか？')) onDelete(post) }}
-                      className="text-soil-200 hover:text-terra-400 transition-colors p-1 -mr-1 -mt-1"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                  {isAuthor && editingId !== post.id && (
+                    <div className="flex items-center gap-1 -mr-1 -mt-1">
+                      <button
+                        onClick={() => startEdit(post)}
+                        aria-label="投稿を編集"
+                        className="text-soil-200 hover:text-leaf-500 transition-colors p-1"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm('この投稿を削除しますか？')) onDelete(post) }}
+                        aria-label="投稿を削除"
+                        className="text-soil-200 hover:text-terra-400 transition-colors p-1"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {/* 本文 */}
-                {post.body && (
+                {/* 本文（編集中はテキスト欄） */}
+                {editingId === post.id ? (
+                  <div className="mb-3 space-y-2">
+                    <textarea
+                      value={editBody}
+                      onChange={e => setEditBody(e.target.value.slice(0, 100))}
+                      rows={3}
+                      autoFocus
+                      className="w-full border border-leaf-300 rounded-lg px-3 py-2 text-sm text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-xs tabular-nums text-soil-300 mr-auto">{editBody.length}/100</span>
+                      <button onClick={cancelEdit} disabled={savingEdit} className="text-sm text-soil-400 px-3 py-1.5">
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={() => saveEdit(post)}
+                        disabled={savingEdit || (!editBody.trim() && post.image_paths.length === 0)}
+                        className="bg-leaf-500 text-white font-bold px-4 py-1.5 rounded-lg text-sm active:scale-95 transition-transform disabled:opacity-40"
+                      >
+                        {savingEdit ? '保存中…' : '保存'}
+                      </button>
+                    </div>
+                  </div>
+                ) : post.body && (
                   <p className="text-soil-700 text-sm whitespace-pre-wrap leading-relaxed mb-3">
                     {post.body}
                   </p>
