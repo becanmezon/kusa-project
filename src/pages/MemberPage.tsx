@@ -138,13 +138,17 @@ export function MemberPage() {
       ])
       setWaterings(w); setShifts(s)
       setPosts(p); setReactions(r); setReplies(rep)
-      setRefreshMsg(sync === 'failed' ? 'シフトの取り込みに失敗しました（表示は更新済み）' : '最新の状態に更新しました')
+      setRefreshMsg(
+        sync === 'synced'  ? 'スプシのシフトを取り込んで更新しました'
+        : sync === 'skipped' ? '表示を更新しました（スプシ連携URLが未設定）'
+        : 'スプシの取り込みに失敗しました（表示は更新済み）'
+      )
     } catch (e) {
       console.error(e)
       setRefreshMsg('更新に失敗しました')
     } finally {
       setRefreshing(false)
-      setTimeout(() => setRefreshMsg(null), 3000)
+      setTimeout(() => setRefreshMsg(null), 5000)
     }
   }
 
