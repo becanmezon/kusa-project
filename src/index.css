@@ -50,7 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* PCでは画面の横幅に合わせて全体を拡大（ズームしたような見た目にして余白を減らす） */
+/* PCでは画面の横幅に合わせて全体を拡大（どんなに広い画面でも同じ比率で見えるように上限なし） */
 @media (min-width: 1024px) {
-  html { font-size: clamp(16px, 1.25vw, 24px); }
+  html { font-size: max(16px, 1.15vw); }
 }

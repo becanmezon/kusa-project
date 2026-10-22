@@ -382,9 +382,9 @@ export function MemberPage() {
       )}
 
       {/* メインコンテンツ */}
-      <main className="flex-1 px-4 py-4 pb-24 lg:px-[10vw] lg:py-6 lg:pb-8 overflow-y-auto">
+      <main className="flex-1 px-4 py-4 pb-24 lg:px-[12vw] lg:py-6 lg:pb-8 overflow-y-auto">
         {tab === 'today' && (
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8 lg:items-start">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
           <div>
           <TodayWatering
             userName={userName}
