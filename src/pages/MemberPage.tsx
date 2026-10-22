@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { Droplets, History, Loader2, Feather, RefreshCw } from 'lucide-react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2 } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
@@ -354,6 +354,12 @@ export function MemberPage() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
+        <Link
+          to="/catch"
+          className="hidden lg:flex items-center gap-1.5 text-sm text-soil-200 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1"
+        >
+          <Gamepad2 size={16} />野菜キャッチ
+        </Link>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
