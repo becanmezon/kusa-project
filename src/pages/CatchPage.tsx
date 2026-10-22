@@ -4,11 +4,8 @@ import { ArrowLeft, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
 import { CatchGame, GAME_SECONDS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
 
 const RULES: { emoji: string; text: string }[] = [
-  { emoji: '🍅🍆🥕', text: '野菜をキャッチで得点' },
-  { emoji: '🥦🌽', text: 'ちょっとレア（20点）' },
-  { emoji: '✨🥕', text: '金のニンジンは100点！' },
-  { emoji: '💧', text: '水滴で残り時間+5秒' },
-  { emoji: '🐛🪨', text: '虫と石はキャッチするとハートが減る' },
+  { emoji: '🍅🥕🍆', text: '野菜をキャッチで10点' },
+  { emoji: '🐛', text: '虫をキャッチするとハートが減る（3回でおしまい）' },
 ]
 
 export function CatchPage() {
@@ -132,7 +129,7 @@ export function CatchPage() {
             {s?.phase === 'ready' && (
               <Overlay>
                 <h2 className="text-3xl font-extrabold text-leaf-700 mb-2">🧺 野菜キャッチ</h2>
-                <p className="text-soil-600 mb-5">落ちてくる野菜をカゴでキャッチしよう！制限時間は{GAME_SECONDS}秒</p>
+                <p className="text-soil-600 mb-5">【鬼むず】大量に落ちてくる中から野菜だけをキャッチしよう！制限時間は{GAME_SECONDS}秒</p>
                 <ul className="text-left inline-flex flex-col gap-1.5 mb-5">
                   {RULES.map((r) => (
                     <li key={r.text} className="flex items-center gap-3">

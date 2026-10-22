@@ -5,7 +5,7 @@ export const W = 960
 export const H = 600
 export const GAME_SECONDS = 60
 const MAX_LIFE = 3
-const BASKET_W = 120
+const BASKET_W = 110
 const BASKET_H = 54
 const BASKET_Y = H - 70
 const KEY_SPEED = 720 // px/秒
@@ -19,19 +19,12 @@ interface ItemDef {
   weight: number // 出やすさ
 }
 
+// 野菜は3種類、ダメなもの（虫）は1種類。虫が半分近く落ちてくる鬼モード
 const ITEMS: ItemDef[] = [
   { emoji: '🍅', kind: 'veg', points: 10, weight: 10 },
-  { emoji: '🍆', kind: 'veg', points: 10, weight: 10 },
   { emoji: '🥕', kind: 'veg', points: 10, weight: 10 },
-  { emoji: '🥒', kind: 'veg', points: 10, weight: 8 },
-  { emoji: '🫑', kind: 'veg', points: 10, weight: 8 },
-  { emoji: '🥔', kind: 'veg', points: 10, weight: 8 },
-  { emoji: '🥦', kind: 'veg', points: 20, weight: 5 },
-  { emoji: '🌽', kind: 'veg', points: 20, weight: 5 },
-  { emoji: '🥕', kind: 'gold', points: 100, weight: 1.2 },
-  { emoji: '🐛', kind: 'bad', points: 0, weight: 7 },
-  { emoji: '🪨', kind: 'bad', points: 0, weight: 4 },
-  { emoji: '💧', kind: 'water', points: 0, weight: 1.5 },
+  { emoji: '🍆', kind: 'veg', points: 10, weight: 10 },
+  { emoji: '🐛', kind: 'bad', points: 0, weight: 27 },
 ]
 const TOTAL_WEIGHT = ITEMS.reduce((s, i) => s + i.weight, 0)
 
@@ -43,6 +36,8 @@ interface Item {
   rot: number
   vr: number
   size: number
+  baseX: number
+  wobble: number // 虫は左右にくねくね動く
 }
 
 interface FloatText {
@@ -203,7 +198,7 @@ export class CatchGame {
     if (this.spawnTimer <= 0) {
       this.spawn()
       const d = this.difficulty
-      this.spawnTimer = 0.75 - 0.45 * d + Math.random() * 0.25
+      this.spawnTimer = 0.2 - 0.1 * d + Math.random() * 0.1
     }
 
     // 落下と当たり判定
@@ -212,6 +207,9 @@ export class CatchGame {
     for (const it of this.items) {
       it.y += it.vy * dt
       it.rot += it.vr * dt
+      if (it.wobble) {
+        it.x = Math.max(30, Math.min(W - 30, it.baseX + Math.sin(it.y / 70) * it.wobble))
+      }
     }
     const keep: Item[] = []
     for (const it of this.items) {
@@ -253,11 +251,14 @@ export class CatchGame {
     for (const it of ITEMS) { r -= it.weight; if (r <= 0) { def = it; break } }
     const d = this.difficulty
     const size = def.kind === 'gold' ? 58 : 52
+    const x = 40 + Math.random() * (W - 80)
     this.items.push({
       def,
-      x: 40 + Math.random() * (W - 80),
+      x,
+      baseX: x,
+      wobble: def.kind === 'bad' ? 40 + Math.random() * 60 : 0,
       y: -size,
-      vy: (170 + 230 * d + Math.random() * 90) * (def.kind === 'gold' ? 1.25 : 1),
+      vy: (280 + 360 * d + Math.random() * 160) * (def.kind === 'gold' ? 1.25 : 1),
       rot: Math.random() * Math.PI,
       vr: (Math.random() - 0.5) * 3,
       size,
@@ -271,7 +272,7 @@ export class CatchGame {
       this.combo = 0
       this.shake = 0.3
       this.flash = 0.25
-      this.addFloat(it.def.emoji === '🐛' ? '虫だ！' : 'いたっ！', it.x, BASKET_Y - 50, '#c0392b')
+      this.addFloat('虫だ！', it.x, BASKET_Y - 50, '#c0392b')
       this.burst(it.x, BASKET_Y - 20, '#c0392b', 10)
     } else if (kind === 'water') {
       this.timeLeft = Math.min(GAME_SECONDS, this.timeLeft + 5)
