@@ -49,3 +49,8 @@ body {
     'Noto Sans JP', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* PCでは画面の横幅に合わせて全体を拡大（ズームしたような見た目にして余白を減らす） */
+@media (min-width: 1024px) {
+  html { font-size: clamp(16px, 1.25vw, 24px); }
+}

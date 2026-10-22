@@ -9,7 +9,7 @@ import { LatestPosts } from '../components/LatestPosts'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { requestShiftSync } from '../lib/shiftSync'
-import { useIsDesktop, useIsWideDesktop } from '../lib/useMediaQuery'
+import { useIsDesktop } from '../lib/useMediaQuery'
 import {
   fetchWaterings, upsertWatering, deleteWateringByDateSlot,
   fetchShifts,
@@ -50,7 +50,6 @@ export function MemberPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const isDesktop = useIsDesktop()
-  const isWide = useIsWideDesktop()
 
   const tab = searchParamToTab(searchParams.get('tab'))
 
@@ -386,7 +385,7 @@ export function MemberPage() {
       <main className="flex-1 px-4 py-4 pb-24 lg:px-8 lg:py-6 lg:pb-8 overflow-y-auto">
         {tab === 'today' && (
           <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
-          <div className="lg:col-span-6 xl:col-span-5">
+          <div className="lg:col-span-5">
           <TodayWatering
             userName={userName}
             todayMorningWatering={todayMorningWatering}
@@ -397,8 +396,8 @@ export function MemberPage() {
             onRain={handleRain}
             onUndo={handleUndo}
           />
-          {/* PC（中くらいの幅）では左列の下にWの最新投稿を表示 */}
-          {isDesktop && !isWide && (
+          {/* PCでは左列の下にWの最新投稿を表示 */}
+          {isDesktop && (
             <div className="mt-4">
               <LatestPosts
                 posts={posts}
@@ -412,7 +411,7 @@ export function MemberPage() {
           </div>
           {/* PCでは今日の画面の右に履歴を並べて表示 */}
           {isDesktop && (
-            <div className="lg:col-span-6 xl:col-span-4 h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
+            <div className="lg:col-span-7 h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
               <WateringHistory
                 history={buildWateringHistory(waterings, historyPastDays + 1)}
                 shifts={shifts}
@@ -420,19 +419,6 @@ export function MemberPage() {
                 hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
                 loadingMore={loadingMoreHistory}
                 onLoadMore={loadMoreHistory}
-              />
-            </div>
-          )}
-          {/* 横に広いPCでは3列目にWの最新投稿を表示 */}
-          {isWide && (
-            <div className="xl:col-span-3 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
-              <LatestPosts
-                posts={posts}
-                reactions={reactions}
-                replies={replies}
-                getImageUrl={getVegetableImageUrl}
-                onOpenAll={() => changeTab('whisper')}
-                limit={8}
               />
             </div>
           )}
