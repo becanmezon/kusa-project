@@ -131,8 +131,8 @@ function SlotCard({ userName, label, emoji, watering, slot, todayShift, onWater,
         </div>
       )}
 
-      {/* 水やりした本人にだけ：ゲームへの入口 */}
-      {status === 'watered' && watering!.by_name.split('・').map(n => n.trim()).includes(userName) && (
+      {/* 記録した本人にだけ（水やりした・雨だった）：ゲームへの入口 */}
+      {status !== null && watering!.by_name.split('・').map(n => n.trim()).includes(userName) && (
         <a
           href={`${GAME_URL}?name=${encodeURIComponent(userName)}`}
           target="_blank"
