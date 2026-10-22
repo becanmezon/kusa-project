@@ -19,7 +19,7 @@ interface Props {
   getImageUrl: (path: string) => string
 }
 
-function timeLabel(isoStr: string): string {
+export function timeLabel(isoStr: string): string {
   const d = new Date(isoStr)
   const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
   if (diffMin < 1)  return 'たった今'

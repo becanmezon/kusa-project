@@ -5,6 +5,7 @@ import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
 import { PostTimeline } from '../components/PostTimeline'
+import { LatestPosts } from '../components/LatestPosts'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { requestShiftSync } from '../lib/shiftSync'
@@ -395,6 +396,18 @@ export function MemberPage() {
             onRain={handleRain}
             onUndo={handleUndo}
           />
+          {/* PCでは左列の下にWの最新投稿を表示 */}
+          {isDesktop && (
+            <div className="mt-4">
+              <LatestPosts
+                posts={posts}
+                reactions={reactions}
+                replies={replies}
+                getImageUrl={getVegetableImageUrl}
+                onOpenAll={() => changeTab('whisper')}
+              />
+            </div>
+          )}
           </div>
           {/* PCでは今日の画面の右に履歴を並べて表示 */}
           {isDesktop && (
