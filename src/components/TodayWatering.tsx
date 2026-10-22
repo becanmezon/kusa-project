@@ -49,10 +49,10 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
       : 'bg-blue-50 border border-blue-200'
 
   const icon = status === null
-    ? <Droplets className="text-terra-500 shrink-0" size={22} />
+    ? <Droplets className="text-terra-500 shrink-0 lg:w-9 lg:h-9" size={22} />
     : status === 'watered'
-      ? <CheckCircle className="text-leaf-500 shrink-0" size={22} />
-      : <CloudRain className="text-blue-400 shrink-0" size={22} />
+      ? <CheckCircle className="text-leaf-500 shrink-0 lg:w-9 lg:h-9" size={22} />
+      : <CloudRain className="text-blue-400 shrink-0 lg:w-9 lg:h-9" size={22} />
 
   const headline = status === null
     ? 'まだです'
@@ -68,19 +68,19 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
   }
 
   return (
-    <div className={`rounded-2xl p-4 shadow-sm ${cardBg}`}>
+    <div className={`rounded-2xl p-4 lg:p-6 shadow-sm ${cardBg}`}>
       {/* スロットヘッダー */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 lg:gap-3 mb-2 lg:mb-4">
         {icon}
         <div className="flex-1">
-          <p className="text-xs text-soil-400">{emoji} {label}</p>
-          <p className={`font-bold text-base ${headlineColor}`}>{headline}</p>
+          <p className="text-xs lg:text-base text-soil-400">{emoji} {label}</p>
+          <p className={`font-bold text-base lg:text-3xl ${headlineColor}`}>{headline}</p>
         </div>
       </div>
 
       {/* 記録済み：誰が対応したか */}
       {watering && (
-        <div className="bg-white/60 rounded-xl px-3 py-2 text-sm text-soil-600 space-y-0.5">
+        <div className="bg-white/60 rounded-xl px-3 py-2 lg:px-4 lg:py-3 text-sm lg:text-lg text-soil-600 space-y-0.5">
           <p>
             <span className="font-bold">{watering.by_name}</span>
             {' さんが '}
@@ -93,7 +93,7 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
 
       {/* 未対応：担当者表示 */}
       {status === null && (
-        <p className="text-sm text-soil-500 mb-3">
+        <p className="text-sm lg:text-xl text-soil-500 mb-3 lg:mb-4">
           担当: <ShiftNames shift={todayShift} slot={slot} />
         </p>
       )}
@@ -106,22 +106,22 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
             onChange={e => setNote(e.target.value)}
             placeholder="メモ（任意）"
             rows={1}
-            className="w-full border border-soil-200 rounded-lg px-3 py-2 text-sm text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
+            className="w-full border border-soil-200 rounded-lg px-3 py-2 lg:py-3 text-sm lg:text-base text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 lg:gap-3">
             <button
               onClick={() => wrap(() => onWater(note, slot).then(() => setNote('')))}
               disabled={loading}
-              className="flex-1 bg-leaf-500 text-white font-bold py-2.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 text-sm"
+              className="flex-1 bg-leaf-500 hover:bg-leaf-600 text-white font-bold py-2.5 lg:py-5 rounded-xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 lg:gap-2 text-sm lg:text-xl"
             >
-              <Droplets size={16} /> 水やりした
+              <Droplets size={16} className="lg:w-6 lg:h-6" /> 水やりした
             </button>
             <button
               onClick={() => wrap(() => onRain(note, slot).then(() => setNote('')))}
               disabled={loading}
-              className="flex-1 bg-blue-400 text-white font-bold py-2.5 rounded-xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 text-sm"
+              className="flex-1 bg-blue-400 hover:bg-blue-500 text-white font-bold py-2.5 lg:py-5 rounded-xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 lg:gap-2 text-sm lg:text-xl"
             >
-              <CloudRain size={16} /> 雨だった
+              <CloudRain size={16} className="lg:w-6 lg:h-6" /> 雨だった
             </button>
           </div>
         </div>
@@ -133,7 +133,7 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
           {!showUndo ? (
             <button
               onClick={() => setShowUndo(true)}
-              className="text-xs text-soil-400 underline underline-offset-2"
+              className="text-xs lg:text-sm text-soil-400 underline underline-offset-2"
             >
               取り消す
             </button>
@@ -178,8 +178,8 @@ export function TodayWatering({
 
       {/* 日付ヘッダー */}
       <div className="px-1">
-        <p className="text-sm font-medium text-soil-500">{formatDate(todayStr)} の水やり</p>
-        <p className="text-xs text-soil-400">記録者: {userName}</p>
+        <p className="text-sm lg:text-2xl font-medium lg:font-bold text-soil-500 lg:text-soil-700">{formatDate(todayStr)} の水やり</p>
+        <p className="text-xs lg:text-sm text-soil-400">記録者: {userName}</p>
       </div>
 
       {/* 朝枠 */}
@@ -209,9 +209,9 @@ export function TodayWatering({
       )}
 
       {/* 明日の担当 */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100">
-        <p className="text-xs text-soil-400 mb-2">明日（{formatDate(tomorrowStr)}）の担当</p>
-        <div className="space-y-1 text-sm">
+      <div className="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border border-soil-100">
+        <p className="text-xs lg:text-sm text-soil-400 mb-2">明日（{formatDate(tomorrowStr)}）の担当</p>
+        <div className="space-y-1 text-sm lg:text-lg">
           <div className="flex items-baseline gap-1.5">
             <span className="text-soil-400 shrink-0">☀️ 朝:</span>
             <ShiftNames shift={tomorrowShift} slot="morning" />

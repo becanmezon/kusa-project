@@ -386,7 +386,7 @@ export function MemberPage() {
       <main className="flex-1 px-4 py-4 pb-24 lg:px-8 lg:py-6 lg:pb-8 overflow-y-auto">
         {tab === 'today' && (
           <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
-          <div className="lg:col-span-5 xl:col-span-4">
+          <div className="lg:col-span-6 xl:col-span-5">
           <TodayWatering
             userName={userName}
             todayMorningWatering={todayMorningWatering}
@@ -412,7 +412,7 @@ export function MemberPage() {
           </div>
           {/* PCでは今日の画面の右に履歴を並べて表示 */}
           {isDesktop && (
-            <div className="lg:col-span-7 xl:col-span-5 h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
+            <div className="lg:col-span-6 xl:col-span-4 h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
               <WateringHistory
                 history={buildWateringHistory(waterings, historyPastDays + 1)}
                 shifts={shifts}
