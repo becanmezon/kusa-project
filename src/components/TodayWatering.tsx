@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Droplets, CheckCircle, CloudRain, Trash2 } from 'lucide-react'
+import { Droplets, CheckCircle, CloudRain, Trash2, Gamepad2 } from 'lucide-react'
 import type { Watering, Shift } from '../types'
 import { today, tomorrow, formatDate, formatTime } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
@@ -24,7 +24,11 @@ function ShiftNames({ shift, slot }: { shift: Shift | null; slot: 'morning' | 'e
   )
 }
 
+/** 野菜なぞりゲーム（今日「水やりした」人だけ遊べる） */
+const GAME_URL = 'https://yasai-nazori.vercel.app/'
+
 interface SlotCardProps {
+  userName: string
   label: string
   emoji: string
   watering: Watering | null
@@ -35,7 +39,7 @@ interface SlotCardProps {
   onUndo: (slot: 'morning' | 'evening') => Promise<void>
 }
 
-function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, onUndo }: SlotCardProps) {
+function SlotCard({ userName, label, emoji, watering, slot, todayShift, onWater, onRain, onUndo }: SlotCardProps) {
   const [note,     setNote]     = useState('')
   const [loading,  setLoading]  = useState(false)
   const [showUndo, setShowUndo] = useState(false)
@@ -127,6 +131,18 @@ function SlotCard({ label, emoji, watering, slot, todayShift, onWater, onRain, o
         </div>
       )}
 
+      {/* 水やりした本人にだけ：ゲームへの入口 */}
+      {status === 'watered' && watering!.by_name.split('・').map(n => n.trim()).includes(userName) && (
+        <a
+          href={`${GAME_URL}?name=${encodeURIComponent(userName)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 w-full bg-terra-500 hover:bg-terra-600 text-white font-bold py-2.5 lg:py-4 rounded-xl text-sm lg:text-lg active:scale-95 transition-transform"
+        >
+          <Gamepad2 size={18} className="lg:w-6 lg:h-6" /> ゲームで遊ぶ
+        </a>
+      )}
+
       {/* 記録済み：取り消し */}
       {status !== null && (
         <div className="mt-2 text-center">
@@ -184,6 +200,7 @@ export function TodayWatering({
 
       {/* 朝枠 */}
       <SlotCard
+        userName={userName}
         label="朝の水やり"
         emoji="☀️"
         watering={todayMorningWatering}
@@ -197,6 +214,7 @@ export function TodayWatering({
       {/* 夜枠（2枠制の日のみ表示） */}
       {showEvening && (
         <SlotCard
+          userName={userName}
           label="夜の水やり"
           emoji="🌙"
           watering={todayEveningWatering}
