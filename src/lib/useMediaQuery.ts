@@ -19,3 +19,8 @@ export function useMediaQuery(query: string): boolean {
 export function useIsDesktop(): boolean {
   return useMediaQuery('(min-width: 1024px)')
 }
+
+/** 横に広いPC（3列表示にする幅。Tailwind の xl と同じ 1280px 以上） */
+export function useIsWideDesktop(): boolean {
+  return useMediaQuery('(min-width: 1280px)')
+}
