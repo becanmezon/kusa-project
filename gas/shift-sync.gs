@@ -2,7 +2,8 @@
  * 草プロジェクト シフト自動連携（Google Apps Script）
  *
  * 「草プロ転送用シフト」（別館シフト転送スプシのコピー）の「シフト」シートを読み、
- * ①コマ = 朝担当 / ③コマ = 夜担当 として Supabase の shifts テーブルに書き込む。
+ * ①コマ = 朝担当 / ②コマ = 夜担当 として Supabase の shifts テーブルに書き込む。
+ * （2026-10-23 までは ③コマ が夜担当だったので、それより前の日は ③コマ のまま読む）
  *
  * シートの形（1行目に日付、2〜4行目に①②③。日付の右2列に担当者2人）:
  *   N1="10/01"  N2="①" O2=樋口 P2=蕪木
@@ -25,6 +26,9 @@ const NAME_FIX = { '柿崎': '柿﨑' }
 // 草プロのメンバーではない人（シフトに入っていても水やり担当にしない）
 const NON_MEMBERS = ['沼田', '今川', '香川', '樋口', '宮本', 'キム']
 
+// 夜の水やりを ③コマ → ②コマ に変えた日（この日以降は ② を夜担当として読む）
+const EVENING_SLOT2_FROM = '2026-10-24'
+
 /** メイン処理：シートを読んで Supabase に反映する */
 function syncShifts() {
   const props = PropertiesService.getScriptProperties()
@@ -43,13 +47,14 @@ function syncShifts() {
     if (!date) continue
 
     const shift = { date: date, morning_names: [], evening_names: [] }
+    const eveningMark = date >= EVENING_SLOT2_FROM ? '②' : '③'
     for (let r = 1; r <= 3; r++) {
       const mark = String(values[r][c]).trim()
       const names = [values[r][c + 1], values[r][c + 2]]
         .map(cleanName)
         .filter(function (n) { return n !== '' && NON_MEMBERS.indexOf(n) === -1 })
       if (mark === '①') shift.morning_names = names
-      if (mark === '③') shift.evening_names = names
+      if (mark === eveningMark) shift.evening_names = names
     }
     rows.push(shift)
   }
