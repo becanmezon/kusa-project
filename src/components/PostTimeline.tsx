@@ -3,6 +3,7 @@ import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, Chevro
 import type { Post, Reaction, Reply } from '../types'
 
 const MAX_IMAGES = 4
+const MAX_BODY = 1000 // 投稿本文の最大文字数
 const EMOJIS = ['❤️', '👍', '🌱', '🎉', '🫡', '😭', '🦀']
 
 interface Props {
@@ -497,9 +498,9 @@ export function PostTimeline({
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100 space-y-3">
         <textarea
           value={body}
-          onChange={e => setBody(e.target.value.slice(0, 100))}
-          placeholder={`${userName} のつぶやき（100文字まで）`}
-          rows={3}
+          onChange={e => setBody(e.target.value.slice(0, MAX_BODY))}
+          placeholder={`${userName} のつぶやき（${MAX_BODY}文字まで）`}
+          rows={body.length > 80 || body.includes('\n') ? 8 : 3}
           className="w-full border border-soil-200 rounded-lg px-3 py-2 text-sm text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
         />
 
@@ -546,8 +547,8 @@ export function PostTimeline({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className={`text-xs tabular-nums ${body.length > 90 ? 'text-terra-500 font-bold' : 'text-soil-300'}`}>
-              {body.length}/100
+            <span className={`text-xs tabular-nums ${body.length > MAX_BODY - 50 ? 'text-terra-500 font-bold' : 'text-soil-300'}`}>
+              {body.length}/{MAX_BODY}
             </span>
             <button
               onClick={handlePost}
@@ -609,13 +610,13 @@ export function PostTimeline({
                   <div className="mb-3 space-y-2">
                     <textarea
                       value={editBody}
-                      onChange={e => setEditBody(e.target.value.slice(0, 100))}
-                      rows={3}
+                      onChange={e => setEditBody(e.target.value.slice(0, MAX_BODY))}
+                      rows={editBody.length > 80 || editBody.includes('\n') ? 8 : 3}
                       autoFocus
                       className="w-full border border-leaf-300 rounded-lg px-3 py-2 text-sm text-soil-700 bg-cream focus:outline-none focus:ring-2 focus:ring-leaf-400 resize-none"
                     />
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-xs tabular-nums text-soil-300 mr-auto">{editBody.length}/100</span>
+                      <span className="text-xs tabular-nums text-soil-300 mr-auto">{editBody.length}/{MAX_BODY}</span>
                       <button onClick={cancelEdit} disabled={savingEdit} className="text-sm text-soil-400 px-3 py-1.5">
                         キャンセル
                       </button>
