@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2 } from 'lucide-react'
+import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2, BarChart3 } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
@@ -432,6 +432,15 @@ export function MemberPage() {
         )}
         {tab === 'history' && (
           <div className="lg:max-w-3xl lg:mx-auto">
+          <Link
+            to="/summary"
+            className="mb-3 flex items-center justify-between bg-white rounded-2xl shadow-sm px-4 py-3 hover:bg-leaf-50"
+          >
+            <span className="flex items-center gap-2 font-bold text-soil-800 whitespace-nowrap">
+              <BarChart3 size={18} className="text-leaf-600" />月のまとめを見る
+            </span>
+            <span className="text-sm text-soil-400 truncate ml-3"><span className="hidden sm:inline">達成率・ランキング・人気の投稿 </span>›</span>
+          </Link>
           <WateringHistory
             history={buildWateringHistory(waterings, historyPastDays + 1)}
             shifts={shifts}
