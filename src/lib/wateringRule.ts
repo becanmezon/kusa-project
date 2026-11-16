@@ -8,10 +8,11 @@
 export type Slot = 'morning' | 'evening'
 
 /**
- * この日以降は朝・夜の2枠制を恒久適用する（期限なし）。
- * 2026-10-17 から「夏だけ夜担当」をやめ、通年で夜担当も表示・記録・通知する。
+ * 朝・夜の2枠制だった期間（2026-10-17 〜 2026-11-16）。
+ * 2026-11-17 からは朝のみ（1日1回）に戻した。期限なし。
  */
 export const DUAL_SLOT_START_DATE = '2026-10-17'
+export const DUAL_SLOT_END_DATE = '2026-11-16'
 
 /** DUAL_SLOT_START_DATE より前の期間に適用していた「夏だけ2枠」の対象月 */
 const LEGACY_DUAL_SLOT_MONTHS = [7, 8, 9]
@@ -20,12 +21,14 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * 指定日が朝・夜の2枠制かどうかを返す
- * - 2026-10-17 以降: 常に2枠（期限なし）
+ * - 2026-11-17 以降: 朝のみ（期限なし）
+ * - 2026-10-17 〜 2026-11-16: 常に2枠
  * - それより前: 7〜9月のみ2枠（2026-10-01〜10-16 は朝のみ＝従来どおり）
  * @param dateStr "YYYY-MM-DD"
  */
 export function isDualSlotDate(dateStr: string): boolean {
   if (!DATE_RE.test(dateStr)) return false
+  if (dateStr > DUAL_SLOT_END_DATE) return false
   if (dateStr >= DUAL_SLOT_START_DATE) return true
   return LEGACY_DUAL_SLOT_MONTHS.includes(Number(dateStr.slice(5, 7)))
 }
