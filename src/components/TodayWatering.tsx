@@ -100,8 +100,14 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
         {status === null && (
           <>
             <p className="text-base lg:text-xl mb-4">
-              <span className="text-ink/70 mr-2">今日の担当</span>
+              {/* スマホは「今日の担当は」のあとで改行（モックに合わせる） */}
+              <span className="text-ink/70">今日の担当は</span>
+              <br className="lg:hidden" />
+              <span className="hidden lg:inline"> </span>
               <span className="font-black">{shiftNames(todayShift, slot)}</span>
+              {todayShift && (slot === 'morning' ? todayShift.morning_names : todayShift.evening_names).length > 0 && (
+                <span className="text-ink/70"> さん</span>
+              )}
             </p>
             <label className="block mb-4">
               <span className="sr-only">メモ（任意）</span>
