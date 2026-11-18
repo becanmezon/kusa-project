@@ -53,20 +53,22 @@
 
 /* 手描き風：インク色の線で囲んだカード（角の丸みを少しずつ変えて手で描いた感じに） */
 @utility hand-card {
-  background-color: #ffffff;
+  /* 純白ではなく、ほんのり温かい紙の色。影は黒ではなく深緑の透過で、少しずらして置く */
+  background-color: #fffdf7;
   border: 2px solid var(--color-ink);
   border-radius: 22px 18px 24px 20px / 20px 24px 18px 22px;
+  box-shadow: 3px 4px 0 rgba(46, 71, 27, 0.16);
 }
 
-/* 手描き風のボタン：線で囲んで、下に少しだけ影 */
+/* 手描き風のボタン：線で囲んで、右下に深緑の影（押すと沈む） */
 @utility hand-btn {
   border: 2px solid var(--color-ink);
   border-radius: 16px 13px 17px 14px / 14px 17px 13px 16px;
-  box-shadow: 0 3px 0 var(--color-ink);
+  box-shadow: 2px 4px 0 #2e471b;
   transition: transform 0.06s ease, box-shadow 0.06s ease;
   &:active:not(:disabled) {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 var(--color-ink);
+    transform: translate(1px, 3px);
+    box-shadow: 1px 1px 0 #2e471b;
   }
 }
 
@@ -77,6 +79,8 @@
 body {
   margin: 0;
   background-color: #FBF8EF;
+  /* ごく薄い紙のざらつき */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   color: #2e2924;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

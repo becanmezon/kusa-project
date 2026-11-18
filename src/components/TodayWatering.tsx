@@ -193,10 +193,13 @@ export function TodayWatering({
       {/* 日付ヘッダー */}
       <div className="px-1 flex items-end justify-between gap-2">
         <div>
-          <p className="text-sm lg:text-lg font-bold text-soil-500">今日の水やり</p>
-          <p className="text-2xl lg:text-4xl font-black">{formatDate(todayStr)}</p>
+          {/* マスキングテープを貼ったような見出し */}
+          <p className="inline-block -rotate-2 bg-sun/80 border-x-2 border-dashed border-ink/25 px-3 py-0.5 text-sm lg:text-lg font-black tracking-wider">
+            今日の水やり
+          </p>
+          <p className="text-3xl lg:text-5xl font-black mt-1.5 tracking-tight">{formatDate(todayStr)}</p>
         </div>
-        <p className="text-xs lg:text-sm text-soil-500 pb-1">記録する人：{userName}</p>
+        <p className="text-xs lg:text-sm text-soil-500 pb-1.5">記録する人：<span className="font-bold text-ink">{userName}</span></p>
       </div>
 
       <SlotCard
