@@ -15,6 +15,8 @@ const router = createBrowserRouter([
       { path: '/display', element: <DisplayPage /> },
       { path: '/catch',   element: <CatchPage /> },
       { path: '/summary', element: <SummaryPage /> },
+      { path: '/paper',   element: <MemberPage variant="paper" /> },
+      { path: '/paper/summary', element: <SummaryPage variant="paper" /> },
     ],
   },
 ])

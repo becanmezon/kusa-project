@@ -250,7 +250,7 @@ function EmojiPill({ emoji, count, reacted, isActive, onToggle, onShowNames, onH
         // タッチ操作はpointerUpで処理済みのため、マウスクリックのみここで処理
         if (lastPointerType.current === 'mouse') onToggle()
       }}
-      className={`select-none flex items-center gap-1 pl-1.5 pr-2.5 py-0.5 rounded-full text-sm border-2 transition-colors ${
+      className={`w-react select-none flex items-center gap-1 pl-1.5 pr-2.5 py-0.5 rounded-full text-sm border-2 transition-colors ${
         reacted
           ? 'bg-sun/40 border-ink font-bold'
           : 'bg-white border-ink/20 hover:border-ink/50'
@@ -344,7 +344,7 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
         {/* 絵文字を追加/取り消しするピッカー */}
         <button
           onClick={handlePickerToggle}
-          className={`flex items-center justify-center w-9 h-8 rounded-full border-2 transition-colors ${
+          className={`w-react flex items-center justify-center w-9 h-8 rounded-full border-2 transition-colors ${
             pickerOpen
               ? 'bg-sky border-ink'
               : 'bg-white border-ink/20 text-soil-500 hover:border-ink/50'

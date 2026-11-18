@@ -7,6 +7,10 @@ import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
 import { PostTimeline } from '../components/PostTimeline'
 import { LatestPosts } from '../components/LatestPosts'
+import { PaperShell } from '../paper/PaperShell'
+import { PaperToday } from '../paper/PaperToday'
+import { PaperHistory } from '../paper/PaperHistory'
+import { PaperLatestPost } from '../paper/PaperLatestPost'
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { requestShiftSync } from '../lib/shiftSync'
@@ -46,7 +50,7 @@ function searchParamToTab(p: string | null): Tab {
   return 'today'
 }
 
-export function MemberPage() {
+export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
   const [userName, setUserName] = useState<string | null>(getSavedName() || null)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -97,6 +101,25 @@ export function MemberPage() {
       navigate('/admin')
     }
   }
+  // ── 隠しコマンド: 今日タブを5回連続で押すと、紙の当番表デザイン（/paper）と行き来する ──
+  const todayTapRef = useRef({ count: 0, lastTapAt: 0 })
+  const handleTodayTap = () => {
+    changeTab('today')
+
+    const now = Date.now()
+    const tapState = todayTapRef.current
+    tapState.count = (now - tapState.lastTapAt <= DISPLAY_MODE_TAP_WINDOW_MS) ? tapState.count + 1 : 1
+    tapState.lastTapAt = now
+
+    if (tapState.count >= DISPLAY_MODE_TAP_COUNT) {
+      tapState.count = 0
+      const keep = new URLSearchParams(searchParams)
+      keep.delete('tab')
+      const qs = keep.toString()
+      navigate((variant === 'paper' ? '/' : '/paper') + (qs ? `?${qs}` : ''))
+    }
+  }
+
   const [waterings,  setWaterings]  = useState<Watering[]>([])
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
@@ -280,6 +303,13 @@ export function MemberPage() {
     }
   }
 
+  const handleChangeName = () => {
+    if (confirm(`名前を変更しますか？（現在: ${userName}）`)) {
+      localStorage.removeItem('kusa_user_name')
+      setUserName(null)
+    }
+  }
+
   // ── 名前未設定 ───────────────────────────────────────────────
   if (!userName) return <NameModal onSave={setUserName} />
 
@@ -321,6 +351,65 @@ export function MemberPage() {
     )
   }
 
+  // ── 紙の当番表デザイン ─────────────────────────────────────
+  if (variant === 'paper') {
+    const historyProps = {
+      history: buildWateringHistory(waterings, historyPastDays + 1),
+      shifts,
+      pastDays: historyPastDays,
+      hasMore: historyPastDays < HISTORY_MAX_PAST_DAYS,
+      loadingMore: loadingMoreHistory,
+      onLoadMore: loadMoreHistory,
+    }
+    return (
+      <PaperShell
+        tab={tab}
+        userName={userName}
+        isDesktop={isDesktop}
+        refreshing={refreshing}
+        refreshMsg={refreshMsg}
+        testDate={todayStr}
+        onTodayTap={handleTodayTap}
+        onHistoryTap={handleHistoryTabTap}
+        onWhisperTap={handleWhisperTabTap}
+        onRefresh={handleRefresh}
+        onChangeName={handleChangeName}
+        today={
+          <PaperToday
+            userName={userName}
+            todayMorningWatering={todayMorningWatering}
+            todayEveningWatering={todayEveningWatering}
+            todayShift={todayShift}
+            tomorrowShift={tomorrowShift}
+            onWater={handleWater}
+            onRain={handleRain}
+            onUndo={handleUndo}
+          />
+        }
+        todayBelow={isDesktop ? (
+          <PaperLatestPost posts={posts} reactions={reactions} replies={replies} onOpenAll={() => changeTab('whisper')} />
+        ) : null}
+        todaySide={isDesktop ? <PaperHistory {...historyProps} fill /> : null}
+        history={<PaperHistory {...historyProps} summaryHref="/paper/summary" />}
+        whisper={
+          <PostTimeline
+            userName={userName}
+            posts={posts}
+            reactions={reactions}
+            replies={replies}
+            onPost={handlePost}
+            onEdit={handleEditPost}
+            onDelete={handleDeletePost}
+            onReact={handleReact}
+            onReply={handleReply}
+            onDeleteReply={handleDeleteReply}
+            getImageUrl={getVegetableImageUrl}
+          />
+        }
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-none mx-auto">
       {/* テストモードバナー */}
@@ -345,7 +434,7 @@ export function MemberPage() {
         <nav className="hidden lg:flex items-center gap-1">
           {([
             { key: 'whisper', label: 'W',    icon: <Feather size={16} />,  onClick: handleWhisperTabTap },
-            { key: 'today',   label: '今日', icon: <Droplets size={16} />, onClick: () => changeTab('today') },
+            { key: 'today',   label: '今日', icon: <Droplets size={16} />, onClick: handleTodayTap },
             { key: 'history', label: '履歴', icon: <History size={16} />,  onClick: handleHistoryTabTap },
           ] as const).map(t => (
             <button
@@ -375,12 +464,7 @@ export function MemberPage() {
           <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
         </button>
         <button
-          onClick={() => {
-            if (confirm(`名前を変更しますか？（現在: ${userName}）`)) {
-              localStorage.removeItem('kusa_user_name')
-              setUserName(null)
-            }
-          }}
+          onClick={handleChangeName}
           className="text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-0.5"
           aria-label={`記録する人：${userName}（タップで変更）`}
           title="記録する人（押すと変更できます）"
@@ -499,7 +583,7 @@ export function MemberPage() {
         {/* 今日タブ（中央・円形・飛び出し） */}
         <div className="flex-1 flex justify-center relative">
           <button
-            onClick={() => changeTab('today')}
+            onClick={handleTodayTap}
             className={`absolute -top-7 w-[4.5rem] h-[4.5rem] rounded-full border-2 border-ink flex flex-col items-center justify-center active:scale-95 transition-transform ${
               tab === 'today' ? 'bg-grass' : 'bg-white'
             }`}
