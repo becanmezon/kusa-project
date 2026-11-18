@@ -183,7 +183,7 @@ body {
 /* 雲：ふわっと左右に */
 @keyframes scene-drift { 0%, 100% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
 /* じょうろの水：下へ流れて消える */
-@keyframes scene-pour { 0% { transform: translate(3px, -5px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-3px, 5px); opacity: 0; } }
+@keyframes scene-pour { 0% { transform: translate(-1px, -5px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(1px, 5px); opacity: 0; } }
 /* 汗：じわっと出て、垂れて、消える */
 @keyframes scene-drip { 0%, 30% { transform: translateY(0); opacity: 0; } 45% { opacity: 1; } 85% { transform: translateY(6px); opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
 

@@ -223,10 +223,11 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         )}
         {state === 'done' && (
           <g>
-            {!night && <path className="scene-spin" style={{ transformOrigin: '300px 35px' }} d="M300 14v6M300 50v6M276 35h6M318 35h6" strokeWidth={2} />}
-            {!night && <circle cx="300" cy="35" r="11" fill={C.sun} />}
-            {/* じょうろ */}
-            <g transform="translate(206 8) rotate(18 30 30)">
+            {/* 太陽：「まだ」のときと同じ形・位置（光は8本） */}
+            {!night && <path className="scene-spin" style={{ transformOrigin: '300px 44px' }} d="M300 18v8M300 62v8M274 44h8M318 44h8M282 26l5 5M313 57l5 5M282 62l5-5M313 31l5-5" strokeWidth={2} />}
+            {!night && <circle cx="300" cy="44" r="14" fill={C.sun} />}
+            {/* じょうろ：太陽や苗に重ならないよう左上に置き、左の苗に水をかける */}
+            <g transform="translate(40 -8) rotate(48 30 30)">
               <path d="M14 22 H44 L42 52 C41.8 54 40.2 55.5 38.2 55.5 H19.8 C17.8 55.5 16.2 54 16 52 Z" fill={C.sea} />
               <path d="M14.5 28 C5 28 4 41 15 43" fill="none" />
               <path d="M17 22 C18 13 40 13 41 22" fill="none" />
@@ -234,7 +235,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
               <path d="M56 14.5 L64 21.5" strokeWidth={4} />
             </g>
             <g stroke={C.sea} strokeWidth={2.4}>
-              <path className="scene-pour" d="M262 44 l-6 10M270 50 l-6 10M256 58 l-6 10M266 66 l-6 10" />
+              <path className="scene-pour" d="M101 46 l3 9M108 50 l3 9M100 58 l3 9M107 62 l3 9" />
             </g>
           </g>
         )}
