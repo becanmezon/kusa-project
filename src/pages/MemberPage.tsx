@@ -332,10 +332,15 @@ export function MemberPage() {
 
       {/* ヘッダー */}
       <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => { changeTab('today'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          className="flex items-center gap-2 rounded-full -ml-1 pl-1 pr-3 py-0.5 hover:bg-white/50"
+          aria-label="今日の水やりに戻る"
+        >
           <LogoSprout size={34} className="lg:w-11 lg:h-11" />
           <h1 className="font-black text-lg lg:text-2xl">草プロジェクト</h1>
-        </div>
+        </button>
         {/* PC用タブ（スマホでは下のタブを使う） */}
         <nav className="hidden lg:flex items-center gap-1">
           {([
