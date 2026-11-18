@@ -106,6 +106,16 @@ export function RainCloudIcon(p: IconProps) {
   )
 }
 
+/** 傘（雨の見出しの横） */
+export function UmbrellaIcon(p: IconProps) {
+  return (
+    <Hand viewBox="0 0 32 32" {...p}>
+      <path d="M3 16 A13 13 0 0 1 29 16 Z" fill="#5AA9E6" />
+      <path d="M16 3 V2 M16 16 V26 A3 3 0 0 1 10 26" fill="none" />
+    </Hand>
+  )
+}
+
 /** 記録済みのチェック（手描きの丸＋チェック） */
 export function DoneMark(p: IconProps) {
   return (
@@ -139,18 +149,26 @@ export function TodoMark(p: IconProps) {
 // ─── 今日の水やりの様子（大きな挿絵） ─────────────────────────
 export type SceneState = 'todo' | 'done' | 'rain'
 
-/** 雨の線：同じ向き・同じ長さで、3段を互い違いに並べる */
-const RAIN_PATH = [56, 76, 96]
+/** 雨粒：同じ向き（左下）・同じ長さで、3段を互い違いに並べる */
+const RAIN_PATH = [48, 74, 100]
   .flatMap((y, row) =>
     // 横長の枠でも端まで降るように、絵の外側（左右）にも並べておく
-    Array.from({ length: 22 }, (_, i) => `M${-174 + i * 34 + (row % 2) * 17} ${y} l-5 10`),
+    Array.from({ length: 22 }, (_, i) => `M${-174 + i * 34 + (row % 2) * 17} ${y} l-6 16`),
   )
   .join(' ')
 
 /** プランターと芽の挿絵。まだ＝しおれ気味、済み＝じょうろで水、雨＝雨雲 */
+/** 状態ごとの色（空・草地・苗・鉢）。水やり済み＝晴れ、まだ＝乾いた暖色、雨＝暗い青灰 */
+const SCENE_COLORS: Record<SceneState, { sky: string; grass: string; leafA: string; leafB: string; pot: string; rim: string }> = {
+  done: { sky: '#CDEBFA', grass: '#C5E59A', leafA: '#a5d65c', leafB: '#7BC043', pot: '#D9A066', rim: '#E3B27C' },
+  todo: { sky: '#FBD3B0', grass: '#DCE5A8', leafA: '#c3d68e', leafB: '#A9C46A', pot: '#D9A066', rim: '#E3B27C' },
+  rain: { sky: '#8FA9BF', grass: '#A9CFA0', leafA: '#8cc56a', leafB: '#6DB24A', pot: '#C98F58', rim: '#D9A066' },
+}
+
 export function GardenScene({ state, night = false, className = 'w-full aspect-[12/5]' }: { state: SceneState; night?: boolean; className?: string }) {
   const id = useId().replace(/:/g, '')
-  const sky = state === 'rain' ? (night ? '#53657a' : C.rainSky) : night ? '#3f5d80' : C.sky
+  const col = SCENE_COLORS[state]
+  const sky = night ? (state === 'rain' ? '#53657a' : '#3f5d80') : col.sky
   const happy = state !== 'todo'
   // 芽の葉っぱ（しおれているときは下向き）
   const leaves = (x: number, h: number, flip = false) => {
@@ -164,8 +182,8 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
     return (
       <g key={x}>
         <path d={`M${x} 104 C${x} ${104 - h / 2} ${x + (happy ? 0 : 3)} ${top + 8} ${x} ${top + 3}`} fill="none" strokeWidth={2.4} />
-        <path d={flip ? d2 : d} fill={C.leaf} />
-        <path d={flip ? d : d2} fill={C.grass} />
+        <path d={flip ? d2 : d} fill={col.leafA} />
+        <path d={flip ? d : d2} fill={col.leafB} />
       </g>
     )
   }
@@ -173,7 +191,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
     // 絵は切らずに全体を収め、足りない左右は空と地面の色で続ける
     <div
       className={`overflow-hidden ${className}`}
-      style={{ background: `linear-gradient(to bottom, ${sky} 82.6%, ${INK} 82.6%, ${INK} calc(82.6% + 2px), #c9e59a calc(82.6% + 2px))` }}
+      style={{ background: `linear-gradient(to bottom, ${sky} 82.6%, ${INK} 82.6%, ${INK} calc(82.6% + 2px), ${col.grass} calc(82.6% + 2px))` }}
     >
     <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMax meet" className="block w-full h-full" overflow="visible" role="img" aria-label={
       state === 'todo' ? 'まだ水やりしていないプランター' : state === 'done' ? '水やりが終わったプランター' : '雨が降っているプランター'
@@ -218,17 +236,26 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         {state === 'rain' && (
           <g>
             {/* 雨：向きと長さをそろえて、空全体に散らす（雲と芽はこの上に描く） */}
-            <path d={RAIN_PATH} stroke={C.sea} strokeWidth={2.2} fill="none" />
-            <path d="M222 46 C206 46 203 26 218 22 C219 6 241 2 250 13 C259 3 282 7 281 23 C296 24 296 46 280 46 Z" fill={C.cloud} />
-            <path d="M80 32 C70 32 68 20 77 18 C78 9 91 6 96 14 C101 7 115 10 114 20 C123 20 123 32 113 32 Z" fill={C.cloud} />
+            <path d={RAIN_PATH} stroke="#EAF6FF" strokeWidth={3.5} fill="none" />
+            {/* 雲を3つ */}
+            <path d="M28 40 C14 40 12 24 24 21 C25 9 43 5 50 15 C57 6 75 10 74 23 C86 24 86 40 72 40 Z" fill="#EEF3F7" />
+            <path d="M152 30 C136 30 133 12 147 8 C149 -6 172 -10 180 3 C189 -8 212 -3 211 12 C225 13 225 30 210 30 Z" fill="#DDE5EC" transform="translate(180 18) scale(0.8) translate(-180 -10)" />
+            <path d="M276 42 C262 42 260 26 272 23 C273 11 291 7 298 17 C305 8 323 12 322 25 C334 26 334 42 320 42 Z" fill="#EEF3F7" />
           </g>
         )}
         {/* 地面 */}
-        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124 V154 H-4 Z" fill="#c9e59a" stroke="none" />
+        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124 V154 H-4 Z" fill={col.grass} stroke="none" />
         <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124" fill="none" />
         {/* プランター */}
-        <path d="M70 100 H290 L284 136 C283.5 139 281 141 278 141 H82 C79 141 76.5 139 76 136 Z" fill={C.wood} />
-        <path d="M64 96 H296 C298 96 299.5 97.6 299 99.5 L298 103.5 C297.6 105 296.4 106 295 106 H65 C63.6 106 62.4 105 62 103.5 L61 99.5 C60.5 97.6 62 96 64 96 Z" fill="#e8bd86" />
+        {/* 雨の日は地面に水たまり */}
+        {state === 'rain' && (
+          <g stroke="none" fill="#BFE3F5">
+            <ellipse cx="34" cy="138" rx="24" ry="4.5" />
+            <ellipse cx="326" cy="140" rx="26" ry="4.5" />
+          </g>
+        )}
+        <path d="M70 100 H290 L284 136 C283.5 139 281 141 278 141 H82 C79 141 76.5 139 76 136 Z" fill={col.pot} />
+        <path d="M64 96 H296 C298 96 299.5 97.6 299 99.5 L298 103.5 C297.6 105 296.4 106 295 106 H65 C63.6 106 62.4 105 62 103.5 L61 99.5 C60.5 97.6 62 96 64 96 Z" fill={col.rim} />
         <path d="M100 118 H110 M128 128 H140 M222 128 H234 M252 118 H262" strokeWidth={1.6} />
         {/* 芽たち */}
         {leaves(130, 34)}
@@ -244,13 +271,17 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         ) : (
           <path d="M175.5 125.5 Q180 122 184.5 125.5" fill="none" strokeWidth={2} />
         )}
-        <circle cx="165" cy="123" r="3.4" fill={C.cheek} stroke="none" />
-        <circle cx="195" cy="123" r="3.4" fill={C.cheek} stroke="none" />
-        {state === 'todo' && <path d="M200 108 C203 112 204 115 201.5 116.5 C199 117.5 197.5 114.5 200 108 Z" fill="#9fd3f3" strokeWidth={1.4} />}
+        {/* ほっぺ（困り顔のときは描かない） */}
+        {happy && <circle cx="165" cy="123" r="3.4" fill="#F4A7A0" stroke="none" />}
+        {happy && <circle cx="195" cy="123" r="3.4" fill="#F4A7A0" stroke="none" />}
+        {state === 'todo' && <path d="M200 108 C203 112 204 115 201.5 116.5 C199 117.5 197.5 114.5 200 108 Z" fill="#5AA9E6" strokeWidth={1.4} />}
+        {/* 水やり済み：葉の上に水滴 */}
         {state === 'done' && (
-          <g fill={C.sun} strokeWidth={1.4}>
-            <path d="M118 58l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
-            <path d="M246 70l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6z" />
+          <g fill="#5AA9E6" strokeWidth={1.4}>
+            <path d="M112 66 q-4 6 0 8 q4 -2 0 -8 z" />
+            <path d="M154 74 q-4 6 0 8 q4 -2 0 -8 z" />
+            <path d="M206 62 q-4 6 0 8 q4 -2 0 -8 z" />
+            <path d="M246 72 q-4 6 0 8 q4 -2 0 -8 z" />
           </g>
         )}
       </g>

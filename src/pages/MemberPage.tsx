@@ -420,7 +420,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
       )}
 
       {/* ヘッダー */}
-      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 flex items-center justify-between sticky top-0 z-30">
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 lg:py-3 flex items-center justify-between sticky top-0 z-30">
         <button
           type="button"
           onClick={() => { changeTab('today'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -431,16 +431,17 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
           <h1 className="font-black text-lg lg:text-2xl">草プロジェクト</h1>
         </button>
         {/* PC用タブ（スマホでは下のタブを使う） */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-2.5">
           {([
-            { key: 'whisper', label: 'W',    icon: <Feather size={16} />,  onClick: handleWhisperTabTap },
-            { key: 'today',   label: '今日', icon: <Droplets size={16} />, onClick: handleTodayTap },
-            { key: 'history', label: '履歴', icon: <History size={16} />,  onClick: handleHistoryTabTap },
+            { key: 'whisper', label: 'W',    icon: <Feather size={19} />,  onClick: handleWhisperTabTap },
+            { key: 'today',   label: '今日', icon: <Droplets size={19} />, onClick: handleTodayTap },
+            { key: 'history', label: '履歴', icon: <History size={19} />,  onClick: handleHistoryTabTap },
           ] as const).map(t => (
             <button
               key={t.key}
               onClick={t.onClick}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-base font-bold border-2 transition-colors ${
+              aria-current={tab === t.key ? 'page' : undefined}
+              className={`flex items-center gap-2 min-h-11 px-5 rounded-full text-lg font-bold border-2 transition-colors ${
                 tab === t.key ? 'bg-white border-ink' : 'border-transparent hover:bg-white/50'
               }`}
             >
@@ -451,21 +452,21 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
         <div className="flex items-center gap-3">
         <Link
           to="/catch"
-          className="hidden lg:flex items-center gap-1.5 text-sm font-bold bg-sun border-2 border-ink rounded-full px-3 py-1 hover:brightness-95"
+          className="hidden lg:flex items-center gap-2 min-h-10 text-base font-bold bg-sun border-2 border-ink rounded-full px-4 hover:brightness-95"
         >
-          <Gamepad2 size={16} />野菜キャッチ
+          <Gamepad2 size={18} />野菜キャッチ
         </Link>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           aria-label="最新の状態に更新"
-          className="disabled:opacity-60 p-2 -m-1 rounded-full hover:bg-white/50"
+          className="disabled:opacity-60 p-2 -m-1 lg:p-2.5 lg:m-0 rounded-full hover:bg-white/50"
         >
-          <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={20} className={`lg:w-[22px] lg:h-[22px] ${refreshing ? 'animate-spin' : ''}`} />
         </button>
         <button
           onClick={handleChangeName}
-          className="text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-0.5"
+          className="text-sm lg:text-base font-bold bg-white border-2 border-ink rounded-full px-3 py-0.5 lg:min-h-10 lg:px-4"
           aria-label={`記録する人：${userName}（タップで変更）`}
           title="記録する人（押すと変更できます）"
         >

@@ -4,7 +4,7 @@ import type { Watering, Shift } from '../types'
 import { today, tomorrow, formatDate, formatTime } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
 import {
-  GardenScene, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, type SceneState,
+  GardenScene, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, UmbrellaIcon, type SceneState,
 } from './illust/Illust'
 import { SlotChip } from './SlotChip'
 
@@ -22,6 +22,13 @@ interface Props {
 function shiftNames(shift: Shift | null, slot: 'morning' | 'evening'): string {
   const names = shift ? (slot === 'morning' ? shift.morning_names : shift.evening_names) : []
   return names.length > 0 ? names.join('・') : '担当なし'
+}
+
+/** 状態ごとの色（カード下半分の地色・バッジ・バッジの文言） */
+const STATE_TONE: Record<SceneState, { bg: string; badge: string; label: string }> = {
+  done: { bg: '#E0F2CC', badge: '#A8DB7A', label: '済み' },
+  todo: { bg: '#FFE1CC', badge: '#F4895F', label: 'まだ' },
+  rain: { bg: '#DCEEFA', badge: '#5AA9E6', label: '雨' },
 }
 
 /** 野菜なぞりゲーム（今日「水やりした」人だけ遊べる） */
@@ -48,14 +55,19 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
   const label = night ? '夜の水やり' : '朝の水やり'
 
   const headline = status === null
-    ? 'まだ水やりしていません'
-    : status === 'watered' ? '水やりおわり！' : '雨だったのでお休み'
+    ? 'まだあげていません'
+    : status === 'watered' ? '水やりしました' : '雨でお休み'
 
-  const badge = status === null
-    ? <span className="shrink-0 rounded-full border-2 border-ink bg-sun px-3 py-1 text-xs lg:text-sm font-bold leading-none">まだ</span>
-    : status === 'watered'
-      ? <span className="shrink-0 rounded-full border-2 border-ink bg-grass px-3 py-1 text-xs lg:text-sm font-bold leading-none">済み</span>
-      : <span className="shrink-0 rounded-full border-2 border-ink bg-sky px-3 py-1 text-xs lg:text-sm font-bold leading-none">雨</span>
+  // 状態ごとの色：カード下半分の地色とバッジ（済み＝緑、まだ＝コーラル、雨＝青）
+  const tone = STATE_TONE[scene]
+  const badge = (
+    <span
+      className="shrink-0 rounded-full border-2 border-ink px-3 py-1 text-xs lg:text-sm font-black leading-none"
+      style={{ backgroundColor: tone.badge }}
+    >
+      {tone.label}
+    </span>
+  )
 
   const wrap = async (fn: () => Promise<void>) => {
     setLoading(true)
@@ -71,20 +83,24 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
         <GardenScene state={scene} night={night} className="w-full aspect-[12/5] lg:aspect-auto lg:h-56" />
       </div>
 
-      <div className="p-4 lg:p-6">
-        <div className="flex items-center gap-2 mb-1">
+      {/* スマホは中央揃え、PCは左揃え */}
+      <div className="px-4 pt-5 pb-3 lg:p-6 text-center lg:text-left" style={{ backgroundColor: tone.bg }}>
+        <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
           {night ? <MoonIcon size={22} className="lg:w-7 lg:h-7" /> : <SunIcon size={22} className="lg:w-7 lg:h-7" />}
-          <span className="text-sm lg:text-lg font-bold text-soil-500">{label}</span>
-          <span className="flex-1" />
+          <span className="text-sm lg:text-lg font-bold text-ink/70">{label}</span>
+          <span className="hidden lg:block flex-1" />
           {badge}
         </div>
-        <h2 className="text-2xl lg:text-4xl font-black leading-tight mb-4">{headline}</h2>
+        <h2 className="text-[1.875rem] lg:text-4xl font-black leading-tight mb-4 flex items-center justify-center lg:justify-start gap-2">
+          {status === 'rain' && <UmbrellaIcon size={32} className="shrink-0 lg:w-10 lg:h-10" />}
+          {headline}
+        </h2>
 
         {/* 未対応：担当者と記録ボタン */}
         {status === null && (
           <>
             <p className="text-base lg:text-xl mb-4">
-              <span className="text-soil-500 mr-2">今日の担当</span>
+              <span className="text-ink/70 mr-2">今日の担当</span>
               <span className="font-black">{shiftNames(todayShift, slot)}</span>
             </p>
             <label className="block mb-4">
@@ -94,7 +110,7 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
                 onChange={e => setNote(e.target.value)}
                 placeholder="メモ（任意）例：代わりにやってくれた人"
                 rows={1}
-                className="w-full border-2 border-ink/25 rounded-xl px-4 py-2 lg:py-3 text-sm lg:text-base bg-paper placeholder:text-soil-400 focus:outline-none focus:border-ink resize-none"
+                className="w-full border-2 border-ink/25 rounded-xl px-4 py-2 lg:py-3 text-sm lg:text-base bg-white/70 placeholder:text-soil-400 text-left focus:outline-none focus:border-ink resize-none"
               />
             </label>
             <div className="grid grid-cols-2 gap-4">
@@ -118,29 +134,32 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
 
         {/* 記録済み：だれが・いつ（箱で囲まず、文字の強弱だけで見せる） */}
         {watering && (
-          <div className="text-base lg:text-xl">
+          <div className="text-base lg:text-xl leading-relaxed">
             <p>
+              {/* スマホは「〜さんが」のあとで改行、PCは1行 */}
               <span className="font-black">{watering.by_name}</span>
-              <span className="text-soil-500"> さんが </span>
+              <span className="text-ink/70"> さんが</span>
+              <br className="lg:hidden" />
+              <span className="hidden lg:inline"> </span>
               <span className="font-black tabular-nums">{formatTime(watering.created_at)}</span>
-              <span className="text-soil-500">{status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}</span>
+              <span className="text-ink/70">{status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}</span>
             </p>
-            {watering.note && <p className="text-soil-500 mt-1 text-sm lg:text-lg">「{watering.note}」</p>}
+            {watering.note && <p className="text-ink/70 mt-1 text-sm lg:text-lg">「{watering.note}」</p>}
           </div>
         )}
 
-        {/* 記録済み：取り消し（記録者の行のすぐ下に左揃え） */}
+        {/* 記録済み：取り消し（スマホは中央・押しやすい高さ、PCは記録者の行の直下に左揃え） */}
         {status !== null && (
-          <div className="mt-2 text-sm">
+          <div className="mt-1 text-[0.8125rem] lg:text-sm">
             {!showUndo ? (
               <button
                 onClick={() => setShowUndo(true)}
-                className="text-soil-500 underline underline-offset-4 py-1"
+                className="font-bold text-ink/70 underline underline-offset-4 min-h-11 px-3 lg:px-0 lg:min-h-0 lg:py-1"
               >
                 記録を取り消す
               </button>
             ) : (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 py-2">
                 <span className="font-bold mr-2">本当に取り消しますか？</span>
                 <button
                   onClick={() => wrap(() => onUndo(slot).then(() => setShowUndo(false)))}
