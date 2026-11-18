@@ -150,7 +150,7 @@ export function TodoMark(p: IconProps) {
 export type SceneState = 'todo' | 'done' | 'rain'
 
 /** 雨粒：同じ向き（左下）・同じ長さで、3段を互い違いに並べる */
-const RAIN_PATH = [48, 74, 100]
+const RAIN_PATH = [-4, 22, 48, 74, 100]
   .flatMap((y, row) =>
     // 横長の枠でも端まで降るように、絵の外側（左右）にも並べておく
     Array.from({ length: 22 }, (_, i) => `M${-174 + i * 34 + (row % 2) * 17} ${y} l-6 16`),
@@ -171,7 +171,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
   const sky = night ? (state === 'rain' ? '#53657a' : '#3f5d80') : col.sky
   const happy = state !== 'todo'
   // 芽の葉っぱ（しおれているときは下向き）
-  const leaves = (x: number, h: number, flip = false) => {
+  const leaves = (x: number, h: number, flip = false, delay = 0) => {
     const top = 104 - h
     // 葉：付け根から先へ、ふっくらした2本の曲線で囲む（先端はわずかに丸める）
     const d = happy
@@ -181,7 +181,11 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
       ? `M${x} ${top + 2} C${x + 2} ${top - 8} ${x + 11} ${top - 15} ${x + 20} ${top - 14} Q${x + 22.5} ${top - 13.5} ${x + 22} ${top - 11} C${x + 20} ${top - 2} ${x + 11} ${top + 4} ${x} ${top + 2} Z`
       : `M${x} ${top + 2} C${x + 9} ${top - 1} ${x + 18} ${top + 4} ${x + 21} ${top + 12} Q${x + 22} ${top + 14.5} ${x + 19.5} ${top + 15} C${x + 10} ${top + 16} ${x + 3} ${top + 10} ${x} ${top + 2} Z`
     return (
-      <g key={x}>
+      <g
+        key={x}
+        className={happy ? 'scene-sway' : 'scene-droop'}
+        style={{ transformOrigin: `${x}px 104px`, animationDelay: `${delay}s` }}
+      >
         <path d={`M${x} 104 C${x} ${104 - h / 2} ${x + (happy ? 0 : 3)} ${top + 8} ${x} ${top + 3}`} fill="none" strokeWidth={2.4} />
         <path d={flip ? d2 : d} fill={col.leafA} />
         <path d={flip ? d : d2} fill={col.leafB} />
@@ -213,13 +217,13 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         )}
         {state === 'todo' && !night && (
           <g>
-            <path d="M300 18v8M300 62v8M274 44h8M318 44h8M282 26l5 5M313 57l5 5M282 62l5-5M313 31l5-5" strokeWidth={2} />
+            <path className="scene-spin" style={{ transformOrigin: '300px 44px' }} d="M300 18v8M300 62v8M274 44h8M318 44h8M282 26l5 5M313 57l5 5M282 62l5-5M313 31l5-5" strokeWidth={2} />
             <circle cx="300" cy="44" r="14" fill={C.sun} />
           </g>
         )}
         {state === 'done' && (
           <g>
-            {!night && <path d="M300 14v6M300 50v6M276 35h6M318 35h6" strokeWidth={2} />}
+            {!night && <path className="scene-spin" style={{ transformOrigin: '300px 35px' }} d="M300 14v6M300 50v6M276 35h6M318 35h6" strokeWidth={2} />}
             {!night && <circle cx="300" cy="35" r="11" fill={C.sun} />}
             {/* じょうろ */}
             <g transform="translate(206 8) rotate(18 30 30)">
@@ -230,18 +234,18 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
               <path d="M56 14.5 L64 21.5" strokeWidth={4} />
             </g>
             <g stroke={C.sea} strokeWidth={2.4}>
-              <path d="M262 44 l-6 10M270 50 l-6 10M256 58 l-6 10M266 66 l-6 10" />
+              <path className="scene-pour" d="M262 44 l-6 10M270 50 l-6 10M256 58 l-6 10M266 66 l-6 10" />
             </g>
           </g>
         )}
         {state === 'rain' && (
           <g>
             {/* 雨：向きと長さをそろえて、空全体に散らす（雲と芽はこの上に描く） */}
-            <path d={RAIN_PATH} stroke="#EAF6FF" strokeWidth={3.5} fill="none" />
+            <path className="scene-rain" d={RAIN_PATH} stroke="#EAF6FF" strokeWidth={3.5} fill="none" />
             {/* 雲を3つ */}
-            <path d="M28 40 C14 40 12 24 24 21 C25 9 43 5 50 15 C57 6 75 10 74 23 C86 24 86 40 72 40 Z" fill="#EEF3F7" />
+            <path className="scene-drift" d="M28 40 C14 40 12 24 24 21 C25 9 43 5 50 15 C57 6 75 10 74 23 C86 24 86 40 72 40 Z" fill="#EEF3F7" />
             <path d="M152 30 C136 30 133 12 147 8 C149 -6 172 -10 180 3 C189 -8 212 -3 211 12 C225 13 225 30 210 30 Z" fill="#DDE5EC" transform="translate(180 18) scale(0.8) translate(-180 -10)" />
-            <path d="M276 42 C262 42 260 26 272 23 C273 11 291 7 298 17 C305 8 323 12 322 25 C334 26 334 42 320 42 Z" fill="#EEF3F7" />
+            <path className="scene-drift" style={{ animationDelay: '-3s' }} d="M276 42 C262 42 260 26 272 23 C273 11 291 7 298 17 C305 8 323 12 322 25 C334 26 334 42 320 42 Z" fill="#EEF3F7" />
           </g>
         )}
         {/* 地面 */}
@@ -262,9 +266,9 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
       {/* 芽たち・顔：拡大してもギザギザしないよう、揺らしのフィルターをかけずになめらかに描く */}
       <g stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {/* 芽たち */}
-        {leaves(130, 34)}
-        {leaves(180, 44, true)}
-        {leaves(230, 36)}
+        {leaves(130, 34, false, 0)}
+        {leaves(180, 44, true, -1.1)}
+        {leaves(230, 36, false, -0.5)}
         {/* プランターの顔 */}
         <g stroke="none" fill={INK}>
           <circle cx="172" cy="118" r="2.2" />
@@ -278,7 +282,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         {/* ほっぺ（困り顔のときは描かない） */}
         {happy && <circle cx="165" cy="123" r="3.4" fill="#F4A7A0" stroke="none" />}
         {happy && <circle cx="195" cy="123" r="3.4" fill="#F4A7A0" stroke="none" />}
-        {state === 'todo' && <path d="M200 108 C203 112 204 115 201.5 116.5 C199 117.5 197.5 114.5 200 108 Z" fill="#5AA9E6" strokeWidth={1.4} />}
+        {state === 'todo' && <path className="scene-drip" d="M200 108 C203 112 204 115 201.5 116.5 C199 117.5 197.5 114.5 200 108 Z" fill="#5AA9E6" strokeWidth={1.4} />}
         {/* 水やり済み：葉の上に水滴 */}
         {state === 'done' && (
           <g fill="#5AA9E6" strokeWidth={1.4}>

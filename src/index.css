@@ -171,3 +171,31 @@ body {
 /* W のリアクション：紙の版では箱にせず、アイコンと数字だけ（押したものは下線） */
 .paper .w-react { border-color: transparent; background: transparent; padding-left: 0.15rem; padding-right: 0.5rem; }
 .paper .w-react.font-bold { text-decoration: underline; text-underline-offset: 4px; }
+
+/* ─── 今日の挿絵のアニメーション ─────────────────────────────── */
+/* 芽：付け根を軸にゆらゆら（元気なときは大きめ、しおれているときはゆっくり小さく） */
+@keyframes scene-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes scene-droop { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(2deg) translateY(0.6px); } }
+/* 太陽の光：ゆっくり回る */
+@keyframes scene-spin { to { transform: rotate(360deg); } }
+/* 雨：同じ向きのまま、2段ぶん（互い違いの並びが一周する分）下へ流れて繰り返す */
+@keyframes scene-rain { from { transform: translate(19.5px, -52px); } to { transform: translate(0, 0); } }
+/* 雲：ふわっと左右に */
+@keyframes scene-drift { 0%, 100% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
+/* じょうろの水：下へ流れて消える */
+@keyframes scene-pour { 0% { transform: translate(3px, -5px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-3px, 5px); opacity: 0; } }
+/* 汗：じわっと出て、垂れて、消える */
+@keyframes scene-drip { 0%, 30% { transform: translateY(0); opacity: 0; } 45% { opacity: 1; } 85% { transform: translateY(6px); opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+
+.scene-sway  { animation: scene-sway 3.2s ease-in-out infinite; }
+.scene-droop { animation: scene-droop 4.5s ease-in-out infinite; }
+.scene-spin  { animation: scene-spin 24s linear infinite; }
+.scene-rain  { animation: scene-rain 1.4s linear infinite; }
+.scene-drift { animation: scene-drift 7s ease-in-out infinite; }
+.scene-pour  { animation: scene-pour 0.9s linear infinite; }
+.scene-drip  { animation: scene-drip 3s ease-in infinite; }
+
+/* 「動きを減らす」設定の人には動かさない */
+@media (prefers-reduced-motion: reduce) {
+  .scene-sway, .scene-droop, .scene-spin, .scene-rain, .scene-drift, .scene-pour, .scene-drip { animation: none; }
+}
