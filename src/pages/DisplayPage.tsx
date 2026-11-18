@@ -110,8 +110,8 @@ export function DisplayPage() {
   const scene: SceneState = status === null ? 'todo' : status === 'watered' ? 'done' : 'rain'
 
   const headline = status === null
-    ? 'まだ水やりしていません'
-    : status === 'watered' ? '水やりおわり！' : '雨だったのでお休み'
+    ? 'まだあげていません'
+    : status === 'watered' ? '水やりしました' : '雨でお休み'
 
   if (loading) {
     return (
@@ -130,20 +130,20 @@ export function DisplayPage() {
       }}
     >
       {/* ヘッダー */}
-      <header className="bg-sky border-b-2 border-ink px-6 py-3 flex items-center justify-between shrink-0">
+      <header className="bg-sky border-b-2 border-ink px-4 sm:px-6 py-2 sm:py-3 flex items-center justify-between gap-3 shrink-0">
         <Link
           to="/"
-          className="flex items-center gap-2 rounded-full -ml-2 pl-2 pr-4 py-1 hover:bg-white/50"
+          className="flex items-center gap-2 rounded-full -ml-2 pl-2 pr-4 py-1 hover:bg-white/50 min-w-0"
           aria-label="草プロジェクトの今日の画面へ"
         >
-          <LogoSprout size={44} />
+          <LogoSprout size={44} className="w-9 h-9 sm:w-11 sm:h-11 shrink-0" />
           <div className="leading-tight">
-            <p className="font-black text-xl">草プロジェクト</p>
-            <p className="text-xs text-soil-500">別館 展示ディスプレイ</p>
+            <p className="font-black text-base sm:text-xl whitespace-nowrap">草プロジェクト</p>
+            <p className="text-[11px] sm:text-xs text-soil-500 whitespace-nowrap">別館 展示ディスプレイ</p>
           </div>
         </Link>
-        <div className="text-right leading-tight">
-          <p className="font-black text-lg">{formatDate(dateStr)}</p>
+        <div className="text-right leading-tight shrink-0">
+          <p className="font-black text-sm sm:text-lg whitespace-nowrap">{formatDate(dateStr)}</p>
           <p className="text-xs text-soil-500">
             {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')} 更新
           </p>
@@ -157,25 +157,28 @@ export function DisplayPage() {
       )}
 
       {/* 画面いっぱいの水やりカード */}
-      <main className="flex-1 flex flex-col p-5 min-h-0">
+      <main className="flex-1 flex flex-col p-3 sm:p-5 min-h-0">
         <div className="hand-card flex-1 min-h-0 flex flex-col overflow-y-auto">
           <div className="border-b-2 border-ink shrink-0">
-            <GardenScene state={scene} night={night} className="w-full h-56" />
+            <GardenScene state={scene} night={night} className="w-full h-[clamp(6rem,24dvh,14rem)]" />
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:px-8 sm:py-6 gap-3 sm:gap-5">
           <div className="text-center">
-            <p className="text-2xl text-soil-500 font-bold flex items-center justify-center gap-2">
-              {night ? <MoonIcon size={32} /> : <SunIcon size={32} />} {label}
+            <p className="text-base sm:text-2xl text-soil-500 font-bold flex items-center justify-center gap-2">
+              {night ? <MoonIcon size={32} className="w-6 h-6 sm:w-8 sm:h-8" /> : <SunIcon size={32} className="w-6 h-6 sm:w-8 sm:h-8" />} {label}
             </p>
-            <p className="text-5xl font-black mt-2">{headline}</p>
+            <p className="text-[1.75rem] sm:text-5xl font-black mt-1 sm:mt-2 leading-tight">{headline}</p>
           </div>
 
           {/* 記録済み：誰が何時に対応したか */}
           {status !== null && watering && (
             <div className="text-center">
-              <p className="text-2xl">
+              <p className="text-lg sm:text-2xl">
                 <span className="font-bold">{watering.by_name}</span>
-                {' さんが '}
+                {' さんが'}
+                {/* スマホは「〜さんが」のあとで改行 */}
+                <br className="sm:hidden" />
+                <span className="hidden sm:inline"> </span>
                 <span className="font-bold tabular-nums">{formatTime(watering.created_at)}</span>
                 {status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}
               </p>
@@ -185,23 +188,23 @@ export function DisplayPage() {
           {/* 未対応：担当表示 + 操作ボタン */}
           {status === null && (
             <>
-              <p className="text-2xl text-soil-500">
+              <p className="text-lg sm:text-2xl text-soil-500">
                 今日の担当<span className="font-black text-ink ml-3">{recorderName}</span>
               </p>
-              <div className="w-full flex flex-col gap-4 mt-2">
+              <div className="w-full grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-4 sm:mt-2">
                 <button
                   onClick={handleWater}
                   disabled={actionLoading}
-                  className="hand-btn w-full bg-grass font-black py-8 disabled:opacity-50 flex items-center justify-center gap-3 text-3xl"
+                  className="hand-btn w-full bg-grass font-black py-4 sm:py-6 disabled:opacity-50 flex items-center justify-center gap-2 sm:gap-3 text-lg sm:text-3xl"
                 >
-                  <WateringCanIcon size={48} /> 水やりした
+                  <WateringCanIcon size={48} className="w-8 h-8 sm:w-12 sm:h-12" /> 水やりした
                 </button>
                 <button
                   onClick={handleRain}
                   disabled={actionLoading}
-                  className="hand-btn w-full bg-sky font-black py-8 disabled:opacity-50 flex items-center justify-center gap-3 text-3xl"
+                  className="hand-btn w-full bg-sky font-black py-4 sm:py-6 disabled:opacity-50 flex items-center justify-center gap-2 sm:gap-3 text-lg sm:text-3xl"
                 >
-                  <RainCloudIcon size={48} /> 雨だった
+                  <RainCloudIcon size={48} className="w-8 h-8 sm:w-12 sm:h-12" /> 雨だった
                 </button>
               </div>
             </>
@@ -209,7 +212,7 @@ export function DisplayPage() {
 
           {/* 記録済み：取り消し（誤操作防止のため確認を挟む） */}
           {status !== null && (
-            <div className="mt-4 w-full">
+            <div className="sm:mt-4 w-full">
               {!showUndo ? (
                 <div className="text-center">
                   <button
