@@ -159,11 +159,8 @@ export function DisplayPage() {
       {/* 画面いっぱいの水やりカード */}
       <main className="flex-1 flex flex-col p-5 min-h-0">
         <div className="hand-card flex-1 min-h-0 flex flex-col overflow-y-auto">
-          <div
-            className="border-b-2 border-ink shrink-0"
-            style={{ background: `linear-gradient(to bottom, ${scene === 'rain' ? (night ? '#53657a' : '#cfdbe4') : night ? '#3f5d80' : '#bfe3f5'} 82.6%, #2e2924 82.6%, #2e2924 calc(82.6% + 2px), #c9e59a calc(82.6% + 2px))` }}
-          >
-            <GardenScene state={scene} night={night} fit="meet" className="block w-full h-56" />
+          <div className="border-b-2 border-ink shrink-0">
+            <GardenScene state={scene} night={night} className="w-full h-56" />
           </div>
           <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
           <div className="text-center">
@@ -175,11 +172,11 @@ export function DisplayPage() {
 
           {/* 記録済み：誰が何時に対応したか */}
           {status !== null && watering && (
-            <div className="bg-paper border-2 border-ink/15 rounded-2xl px-6 py-4 text-center">
-              <p className="text-xl">
+            <div className="text-center">
+              <p className="text-2xl">
                 <span className="font-bold">{watering.by_name}</span>
                 {' さんが '}
-                <span className="font-bold">{formatTime(watering.created_at)}</span>
+                <span className="font-bold tabular-nums">{formatTime(watering.created_at)}</span>
                 {status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}
               </p>
             </div>

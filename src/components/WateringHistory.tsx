@@ -1,7 +1,8 @@
 import { useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { DoneMark, MissMark, TodoMark, RainCloudIcon } from './illust/Illust'
-import { formatDate, today } from '../lib/utils'
+import { SlotChip } from './SlotChip'
+import { today } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
 import type { HistoryEntry } from '../lib/db'
@@ -33,16 +34,8 @@ function SlotLine({ slot, showSlot, icon, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="grid grid-cols-[1.75rem_1.5rem_minmax(0,1fr)] items-start gap-x-1.5 min-h-6">
-      <span className="pt-0.5">
-        {showSlot && (
-          <span className={`inline-block w-6 text-center text-[11px] font-black rounded-md border leading-5 ${
-            slot === 'morning' ? 'bg-sun/40 border-ink/30' : 'bg-[#3f5d80] text-white border-[#3f5d80]'
-          }`}>
-            {slot === 'morning' ? '朝' : '夜'}
-          </span>
-        )}
-      </span>
+    <div className="grid grid-cols-[1.5rem_1.5rem_minmax(0,1fr)] items-start gap-x-2 min-h-6">
+      <span>{showSlot && <SlotChip slot={slot} />}</span>
       <span className="flex items-center justify-center h-6">{icon}</span>
       <div className="min-w-0 leading-6">{children}</div>
     </div>
@@ -53,7 +46,7 @@ function SlotLine({ slot, showSlot, icon, children }: {
 function PlanLine({ slot, showSlot, names }: { slot: SlotKind; showSlot: boolean; names: string[] }) {
   return (
     <SlotLine slot={slot} showSlot={showSlot} icon={null}>
-      <span className={`text-sm ${names.length > 0 ? 'text-soil-600' : 'text-soil-400'}`}>
+      <span className="text-sm text-soil-400">
         {names.length > 0 ? names.join('・') : '担当なし'}
       </span>
     </SlotLine>
@@ -76,7 +69,7 @@ function RecordLine({ slot, showSlot, watering, pending }: {
         icon={rain ? <RainCloudIcon size={22} title="雨" /> : <DoneMark size={19} title="水やり済み" />}
       >
         <span className="text-sm font-bold">{watering.by_name}</span>
-        {watering.note && <p className="text-xs text-soil-500 leading-snug pb-0.5">「{watering.note}」</p>}
+        {watering.note && <p className="text-xs text-soil-500 leading-snug pb-1">「{watering.note}」</p>}
       </SlotLine>
     )
   }
@@ -96,14 +89,18 @@ function RecordLine({ slot, showSlot, watering, pending }: {
 
 /** 日付の列（固定幅） */
 function DateCell({ date, tag }: { date: string; tag: 'today' | 'plan' | null }) {
+  const [y, month, day] = date.split('-').map(Number)
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, month - 1, day).getDay()]
   return (
-    <div className="leading-6">
-      <span className={`text-sm ${tag === 'plan' ? 'text-soil-500' : 'font-bold'} ${tag === 'today' ? 'font-black' : ''}`}>
-        {formatDate(date)}
-      </span>
-      {tag === 'today' && (
-        <span className="block w-fit mt-0.5 bg-sun border-2 border-ink text-[11px] font-black px-2 rounded-full leading-4">今日</span>
-      )}
+    <div
+      className={`leading-6 text-sm tabular-nums whitespace-nowrap ${
+        tag === 'plan' ? 'text-soil-400' : tag === 'today' ? 'font-black' : 'font-bold'
+      }`}
+      aria-current={tag === 'today' ? 'date' : undefined}
+    >
+      <span className="inline-block w-[2.4em] text-right">{month}月</span>
+      <span className="inline-block w-[2.4em] text-right">{day}日</span>
+      <span className="inline-block w-[1.8em] text-center">({weekday})</span>
     </div>
   )
 }
@@ -115,9 +112,11 @@ interface Props {
   hasMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
+  /** 親の高さいっぱいに広げ、中の一覧だけをスクロールさせる（PCの右側パネル用） */
+  fill?: boolean
 }
 
-export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMore, onLoadMore }: Props) {
+export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMore, onLoadMore, fill = false }: Props) {
   const todayStr    = today()
   const dates       = buildTimeline(todayStr, pastDays)
   const todayRef    = useRef<HTMLLIElement>(null)
@@ -160,30 +159,29 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
   }, [hasMore, loadingMore, onLoadMore])
 
   return (
-    <div className="hand-card overflow-hidden">
+    <div className={`soft-card overflow-hidden ${fill ? 'h-full flex flex-col' : ''}`}>
       {/* 凡例 */}
-      <div className="px-4 py-2.5 border-b-2 border-ink bg-paper flex items-center gap-4 flex-wrap text-xs font-bold">
+      <div className="shrink-0 px-4 lg:px-6 py-2 border-b border-ink/20 bg-paper flex items-center gap-4 flex-wrap text-xs font-bold">
         <span className="flex items-center gap-1"><DoneMark size={16} /> 水やり済み</span>
         <span className="flex items-center gap-1"><RainCloudIcon size={18} /> 雨</span>
         <span className="flex items-center gap-1"><MissMark size={16} /> 記録なし</span>
-        <span className="text-soil-500 font-medium">マークのない行は、これからの担当予定</span>
       </div>
-      <ul>
+      <ul className={fill ? 'flex-1 min-h-0 overflow-y-auto' : ''}>
         {dates.map(date => {
           const isToday  = date === todayStr
           const isFuture = date > todayStr
           // 未来の担当予定／過去の実績どちらも、その日のルールで朝夜2行か1行かを決める
           const dual     = isDualSlotDate(date)
 
-          const rowGrid = 'grid grid-cols-[7.25rem_minmax(0,1fr)] gap-x-2 items-start'
+          const rowGrid = 'grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 items-start px-4 lg:px-6'
 
           // ── 未来: 担当予定 ─────────────────────────────
           if (isFuture) {
             const shift = shifts.find(s => s.date === date)
             return (
-              <li key={date} className={`${rowGrid} border-b border-ink/10 last:border-0 px-4 py-2 bg-paper/70`}>
+              <li key={date} className={`${rowGrid} border-b border-ink/10 last:border-0 py-2`}>
                 <DateCell date={date} tag="plan" />
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   <PlanLine slot="morning" showSlot={dual} names={shift?.morning_names ?? []} />
                   {dual && <PlanLine slot="evening" showSlot names={shift?.evening_names ?? []} />}
                 </div>
@@ -200,10 +198,10 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
             <li
               key={date}
               ref={isToday ? todayRef : undefined}
-              className={`${rowGrid} border-b border-ink/10 last:border-0 px-4 ${isToday ? 'bg-sun/30 py-3 border-y-2 border-y-ink' : 'py-2'}`}
+              className={`${rowGrid} border-b border-ink/10 last:border-0 ${isToday ? 'bg-sun/40 py-3' : 'py-2'}`}
             >
               <DateCell date={date} tag={isToday ? 'today' : null} />
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <RecordLine slot="morning" showSlot={dual} watering={morning} pending={isToday} />
                 {dual && <RecordLine slot="evening" showSlot watering={evening} pending={isToday} />}
               </div>
@@ -212,7 +210,7 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
         })}
 
         {/* 読み込みトリガー / 終端表示 */}
-        <li ref={sentinelRef} className="px-4 py-3 text-center border-t border-ink/10">
+        <li ref={sentinelRef} className="px-4 lg:px-6 py-3 text-center border-t border-ink/10">
           {loadingMore ? (
             <span className="inline-flex items-center gap-1.5 text-xs text-soil-400">
               <Loader2 size={14} className="animate-spin" />

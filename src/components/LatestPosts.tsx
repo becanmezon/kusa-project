@@ -1,4 +1,4 @@
-import { Feather, ChevronRight, MessageCircle } from 'lucide-react'
+import { ChevronRight, MessageCircle } from 'lucide-react'
 import { ReactionIcon } from './illust/Illust'
 import { timeLabel } from './PostTimeline'
 import type { Post, Reaction, Reply } from '../types'
@@ -28,32 +28,30 @@ export function LatestPosts({ posts, reactions, replies, getImageUrl, onOpenAll 
   const images = post?.image_paths ?? []
 
   return (
-    <div className="hand-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 pt-4 pb-2">
-        <p className="text-sm text-soil-400 flex items-center gap-1.5">
-          <Feather size={15} /> Wの最新の投稿
-        </p>
+    <div className="soft-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 lg:px-6 pt-4 pb-2">
+        <p className="text-sm lg:text-base font-bold text-soil-500">Wの最新の投稿</p>
         <button onClick={onOpenAll} className="text-sm text-leaf-600 hover:underline flex items-center">
           すべて見る <ChevronRight size={15} />
         </button>
       </div>
 
       {!post ? (
-        <p className="px-5 pb-5 text-base text-soil-300">まだつぶやきはありません</p>
+        <p className="px-4 lg:px-6 pb-4 lg:pb-6 text-base text-soil-400">まだつぶやきはありません</p>
       ) : (
-        <button onClick={onOpenAll} className="w-full text-left px-5 pb-5 hover:bg-cream/60 transition-colors">
+        <button onClick={onOpenAll} className="w-full text-left px-4 lg:px-6 pb-4 lg:pb-6 hover:bg-cream/60 transition-colors">
           <div className="flex items-baseline gap-2 mb-2">
             <span className="font-bold text-soil-700 text-lg">{post.by_name}</span>
-            <span className="text-sm text-soil-400">{timeLabel(post.created_at)}</span>
+            <span className="text-sm text-soil-400 tabular-nums">{timeLabel(post.created_at)}</span>
             {post.edited_at && <span className="text-sm text-soil-300">（編集済み）</span>}
           </div>
 
           {post.body && (
-            <p className="text-soil-700 text-lg leading-relaxed whitespace-pre-wrap mb-3">{post.body}</p>
+            <p className="text-soil-700 text-lg leading-relaxed whitespace-pre-wrap mb-4">{post.body}</p>
           )}
 
           {images.length > 0 && (
-            <div className={`grid gap-1.5 rounded-xl overflow-hidden mb-3 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <div className={`grid gap-1 rounded-xl overflow-hidden mb-4 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {images.slice(0, 4).map(path => (
                 <img
                   key={path}
@@ -68,7 +66,7 @@ export function LatestPosts({ posts, reactions, replies, getImageUrl, onOpenAll 
           {(emojiCounts.length > 0 || replyCount > 0) && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-soil-500">
               {emojiCounts.map(([emoji, count]) => (
-                <span key={emoji} className="inline-flex items-center gap-1 bg-white border-2 border-ink/20 rounded-full pl-1.5 pr-2.5 py-0.5 font-bold">
+                <span key={emoji} className="inline-flex items-center gap-1 font-bold tabular-nums">
                   <ReactionIcon name={emoji} size={20} /> {count}
                 </span>
               ))}

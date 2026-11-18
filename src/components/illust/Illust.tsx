@@ -12,6 +12,9 @@ function Hand({
   size = 24, viewBox, className, title, wobble = 1.2, children, ...rest
 }: IconProps & { viewBox: string; wobble?: number; children: ReactNode } & Omit<SVGProps<SVGSVGElement>, 'viewBox'>) {
   const id = useId().replace(/:/g, '')
+  // viewBox の大きさが違うアイコンでも、表示したときの線の太さがそろうようにする（24の枠で1.8が基準）
+  const box = Number(viewBox.split(' ')[2]) || 24
+  const baseStroke = (1.8 * box) / 24
   return (
     <svg
       width={size}
@@ -32,7 +35,7 @@ function Hand({
       <g
         filter={`url(#w${id})`}
         stroke={INK}
-        strokeWidth={1.8}
+        strokeWidth={baseStroke}
         strokeLinecap="round"
         strokeLinejoin="round"
       >
@@ -46,14 +49,14 @@ function Hand({
 export function LogoSprout(p: IconProps) {
   return (
     <Hand viewBox="0 0 48 48" {...p}>
-      <path d="M24 26 C24 20 24.4 16 24 11" fill="none" strokeWidth={2.2} />
+      <path d="M24 26 C24 20 24.4 16 24 11" fill="none" strokeWidth={4.2} />
       <path d="M24 17 C18 17.5 12 14 11 7.5 C17.5 6.5 23 10 24 17 Z" fill={C.leaf} />
       <path d="M24 14 C26 8 32 5 38.5 6 C38 12.5 31.5 15.5 24 14 Z" fill={C.grass} />
       <path d="M9.5 25 H38.5 C39.3 25 39.8 25.6 39.6 26.4 L39 29.6 C38.9 30.2 38.3 30.6 37.7 30.6 H10.3 C9.7 30.6 9.1 30.2 9 29.6 L8.4 26.4 C8.2 25.6 8.7 25 9.5 25 Z" fill={C.clay} />
       <path d="M11.2 30.6 H36.8 L34.2 43 C34 43.9 33.3 44.5 32.4 44.5 H15.6 C14.7 44.5 14 43.9 13.8 43 Z" fill={C.clay} />
       <circle cx="19.5" cy="36.5" r="1.3" fill={INK} stroke="none" />
       <circle cx="28.5" cy="36.5" r="1.3" fill={INK} stroke="none" />
-      <path d="M22.5 39 Q24 40.3 25.5 39" fill="none" strokeWidth={1.4} />
+      <path d="M22.5 39 Q24 40.3 25.5 39" fill="none" strokeWidth={2.6} />
     </Hand>
   )
 }
@@ -85,8 +88,8 @@ export function WateringCanIcon(p: IconProps) {
     <Hand viewBox="0 0 32 32" {...p}>
       <path d="M8 12.5 H20 L19.2 26 C19.1 27 18.3 27.7 17.3 27.7 H10.7 C9.7 27.7 8.9 27 8.8 26 Z" fill={C.sea} />
       <path d="M8.3 15.5 C4.5 15.5 3.8 21.5 8.6 22.5" fill="none" />
-      <path d="M19.6 17.5 L27 10.5" fill="none" strokeWidth={2.2} />
-      <path d="M25.3 9 L28.8 12.2" strokeWidth={2.6} />
+      <path d="M19.6 17.5 L27 10.5" fill="none" strokeWidth={2.9} />
+      <path d="M25.3 9 L28.8 12.2" strokeWidth={3.4} />
       <path d="M9.5 12.5 C10 8.5 18 8.5 18.5 12.5" fill="none" />
       <circle cx="29" cy="16" r=".9" fill={C.sea} stroke="none" />
       <circle cx="30.4" cy="19.5" r=".9" fill={C.sea} stroke="none" />
@@ -98,7 +101,7 @@ export function RainCloudIcon(p: IconProps) {
   return (
     <Hand viewBox="0 0 32 32" {...p}>
       <path d="M9 21 C4.8 21 3.8 15.2 7.8 14 C8 9.6 13.8 7.6 16.6 11 C19 7.6 25.2 9 25 13.6 C29.4 14 29 21 24.6 21 Z" fill={C.cloud} />
-      <path d="M10 24.5 l-1.4 3.3 M16 24.5 l-1.4 3.3 M22 24.5 l-1.4 3.3" stroke={C.sea} strokeWidth={2} />
+      <path d="M10 24.5 l-1.4 3.3 M16 24.5 l-1.4 3.3 M22 24.5 l-1.4 3.3" stroke={C.sea} strokeWidth={2.6} />
     </Hand>
   )
 }
@@ -136,8 +139,16 @@ export function TodoMark(p: IconProps) {
 // ─── 今日の水やりの様子（大きな挿絵） ─────────────────────────
 export type SceneState = 'todo' | 'done' | 'rain'
 
+/** 雨の線：同じ向き・同じ長さで、3段を互い違いに並べる */
+const RAIN_PATH = [56, 76, 96]
+  .flatMap((y, row) =>
+    // 横長の枠でも端まで降るように、絵の外側（左右）にも並べておく
+    Array.from({ length: 22 }, (_, i) => `M${-174 + i * 34 + (row % 2) * 17} ${y} l-5 10`),
+  )
+  .join(' ')
+
 /** プランターと芽の挿絵。まだ＝しおれ気味、済み＝じょうろで水、雨＝雨雲 */
-export function GardenScene({ state, night = false, fit = 'slice', className }: { state: SceneState; night?: boolean; fit?: 'slice' | 'meet'; className?: string }) {
+export function GardenScene({ state, night = false, className = 'w-full aspect-[12/5]' }: { state: SceneState; night?: boolean; className?: string }) {
   const id = useId().replace(/:/g, '')
   const sky = state === 'rain' ? (night ? '#53657a' : C.rainSky) : night ? '#3f5d80' : C.sky
   const happy = state !== 'todo'
@@ -159,7 +170,12 @@ export function GardenScene({ state, night = false, fit = 'slice', className }: 
     )
   }
   return (
-    <svg viewBox="0 0 360 150" preserveAspectRatio={fit === 'slice' ? 'xMidYMax slice' : 'xMidYMax meet'} className={className} role="img" aria-label={
+    // 絵は切らずに全体を収め、足りない左右は空と地面の色で続ける
+    <div
+      className={`overflow-hidden ${className}`}
+      style={{ background: `linear-gradient(to bottom, ${sky} 82.6%, ${INK} 82.6%, ${INK} calc(82.6% + 2px), #c9e59a calc(82.6% + 2px))` }}
+    >
+    <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMax meet" className="block w-full h-full" overflow="visible" role="img" aria-label={
       state === 'todo' ? 'まだ水やりしていないプランター' : state === 'done' ? '水やりが終わったプランター' : '雨が降っているプランター'
     }>
       <defs>
@@ -168,7 +184,6 @@ export function GardenScene({ state, night = false, fit = 'slice', className }: 
           <feDisplacementMap in="SourceGraphic" scale="2" />
         </filter>
       </defs>
-      <rect x="0" y="0" width="360" height="150" fill={sky} />
       <g filter={`url(#g${id})`} stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {/* 空のもの */}
         {night && state !== 'rain' && (
@@ -202,16 +217,15 @@ export function GardenScene({ state, night = false, fit = 'slice', className }: 
         )}
         {state === 'rain' && (
           <g>
-            <path d="M222 56 C206 56 203 36 218 32 C219 16 241 10 250 23 C259 11 282 17 281 33 C296 34 296 56 280 56 Z" fill={C.cloud} />
-            <path d="M80 34 C70 34 68 22 77 20 C78 11 91 8 96 16 C101 9 115 12 114 22 C123 22 123 34 113 34 Z" fill={C.cloud} />
-            <g stroke={C.sea} strokeWidth={2.2}>
-              <path d="M225 66 l-5 10M243 66 l-5 10M261 66 l-5 10M234 84 l-5 10M252 84 l-5 10M90 44 l-4 8M104 44 l-4 8M97 58 l-4 8" />
-            </g>
+            {/* 雨：向きと長さをそろえて、空全体に散らす（雲と芽はこの上に描く） */}
+            <path d={RAIN_PATH} stroke={C.sea} strokeWidth={2.2} fill="none" />
+            <path d="M222 46 C206 46 203 26 218 22 C219 6 241 2 250 13 C259 3 282 7 281 23 C296 24 296 46 280 46 Z" fill={C.cloud} />
+            <path d="M80 32 C70 32 68 20 77 18 C78 9 91 6 96 14 C101 7 115 10 114 20 C123 20 123 32 113 32 Z" fill={C.cloud} />
           </g>
         )}
         {/* 地面 */}
-        <path d="M-4 126 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124 V154 H-4 Z" fill="#c9e59a" stroke="none" />
-        <path d="M-4 126 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124" fill="none" />
+        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124 V154 H-4 Z" fill="#c9e59a" stroke="none" />
+        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124" fill="none" />
         {/* プランター */}
         <path d="M70 100 H290 L284 136 C283.5 139 281 141 278 141 H82 C79 141 76.5 139 76 136 Z" fill={C.wood} />
         <path d="M64 96 H296 C298 96 299.5 97.6 299 99.5 L298 103.5 C297.6 105 296.4 106 295 106 H65 C63.6 106 62.4 105 62 103.5 L61 99.5 C60.5 97.6 62 96 64 96 Z" fill="#e8bd86" />
@@ -241,6 +255,7 @@ export function GardenScene({ state, night = false, fit = 'slice', className }: 
         )}
       </g>
     </svg>
+    </div>
   )
 }
 

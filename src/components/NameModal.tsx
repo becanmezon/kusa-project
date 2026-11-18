@@ -31,7 +31,7 @@ export function NameModal({ onSave }: Props) {
     <div className="fixed inset-0 bg-sky flex items-center justify-center z-50 px-4">
       <div className="hand-card overflow-hidden w-full max-w-sm">
         <div className="border-b-2 border-ink">
-          <GardenScene state="done" className="block w-full h-auto" />
+          <GardenScene state="done" />
         </div>
         <div className="p-5">
         <div className="text-center mb-5">

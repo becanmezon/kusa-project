@@ -6,6 +6,7 @@ import { isDualSlotDate } from '../lib/wateringRule'
 import {
   GardenScene, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, type SceneState,
 } from './illust/Illust'
+import { SlotChip } from './SlotChip'
 
 interface Props {
   userName: string
@@ -51,10 +52,10 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
     : status === 'watered' ? '水やりおわり！' : '雨だったのでお休み'
 
   const badge = status === null
-    ? <span className="shrink-0 rounded-full border-2 border-ink bg-sun px-3 py-0.5 text-xs lg:text-sm font-bold">まだ</span>
+    ? <span className="shrink-0 rounded-full border-2 border-ink bg-sun px-3 py-1 text-xs lg:text-sm font-bold leading-none">まだ</span>
     : status === 'watered'
-      ? <span className="shrink-0 rounded-full border-2 border-ink bg-grass px-3 py-0.5 text-xs lg:text-sm font-bold">済み</span>
-      : <span className="shrink-0 rounded-full border-2 border-ink bg-sky px-3 py-0.5 text-xs lg:text-sm font-bold">雨</span>
+      ? <span className="shrink-0 rounded-full border-2 border-ink bg-grass px-3 py-1 text-xs lg:text-sm font-bold leading-none">済み</span>
+      : <span className="shrink-0 rounded-full border-2 border-ink bg-sky px-3 py-1 text-xs lg:text-sm font-bold leading-none">雨</span>
 
   const wrap = async (fn: () => Promise<void>) => {
     setLoading(true)
@@ -65,9 +66,9 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
 
   return (
     <section className="hand-card overflow-hidden">
-      {/* 今の様子がひと目でわかる挿絵 */}
+      {/* 今の様子がひと目でわかる挿絵（切らずに全体を収める） */}
       <div className="border-b-2 border-ink">
-        <GardenScene state={scene} night={night} className="block w-full h-auto lg:h-56" />
+        <GardenScene state={scene} night={night} className="w-full aspect-[12/5] lg:aspect-auto lg:h-56" />
       </div>
 
       <div className="p-4 lg:p-6">
@@ -77,26 +78,26 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
           <span className="flex-1" />
           {badge}
         </div>
-        <h2 className="text-2xl lg:text-4xl font-black leading-tight mb-3 lg:mb-5">{headline}</h2>
+        <h2 className="text-2xl lg:text-4xl font-black leading-tight mb-4">{headline}</h2>
 
         {/* 未対応：担当者と記録ボタン */}
         {status === null && (
           <>
             <p className="text-base lg:text-xl mb-4">
-              <span className="text-soil-500 mr-3">今日の担当</span>
+              <span className="text-soil-500 mr-2">今日の担当</span>
               <span className="font-black">{shiftNames(todayShift, slot)}</span>
             </p>
-            <label className="block mb-3">
+            <label className="block mb-4">
               <span className="sr-only">メモ（任意）</span>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="メモ（任意）例：代わりにやってくれた人"
                 rows={1}
-                className="w-full border-2 border-ink/25 rounded-xl px-3 py-2 lg:py-3 text-sm lg:text-base bg-paper placeholder:text-soil-400 focus:outline-none focus:border-ink resize-none"
+                className="w-full border-2 border-ink/25 rounded-xl px-4 py-2 lg:py-3 text-sm lg:text-base bg-paper placeholder:text-soil-400 focus:outline-none focus:border-ink resize-none"
               />
             </label>
-            <div className="grid grid-cols-2 gap-3 lg:gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => wrap(() => onWater(note, slot).then(() => setNote('')))}
                 disabled={loading}
@@ -115,16 +116,45 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
           </>
         )}
 
-        {/* 記録済み：だれが・いつ */}
+        {/* 記録済み：だれが・いつ（箱で囲まず、文字の強弱だけで見せる） */}
         {watering && (
-          <div className="rounded-xl bg-paper border-2 border-ink/15 px-4 py-3 text-base lg:text-xl">
+          <div className="text-base lg:text-xl">
             <p>
               <span className="font-black">{watering.by_name}</span>
               <span className="text-soil-500"> さんが </span>
-              <span className="font-black">{formatTime(watering.created_at)}</span>
+              <span className="font-black tabular-nums">{formatTime(watering.created_at)}</span>
               <span className="text-soil-500">{status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}</span>
             </p>
             {watering.note && <p className="text-soil-500 mt-1 text-sm lg:text-lg">「{watering.note}」</p>}
+          </div>
+        )}
+
+        {/* 記録済み：取り消し（記録者の行のすぐ下に左揃え） */}
+        {status !== null && (
+          <div className="mt-2 text-sm">
+            {!showUndo ? (
+              <button
+                onClick={() => setShowUndo(true)}
+                className="text-soil-500 underline underline-offset-4 py-1"
+              >
+                記録を取り消す
+              </button>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold mr-2">本当に取り消しますか？</span>
+                <button
+                  onClick={() => wrap(() => onUndo(slot).then(() => setShowUndo(false)))}
+                  disabled={loading}
+                  className="rounded-full border-2 border-ink bg-clay font-bold px-4 py-1 flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Trash2 size={14} /> 取り消す
+                </button>
+                <button
+                  onClick={() => setShowUndo(false)}
+                  className="rounded-full border-2 border-ink/30 bg-white px-4 py-1"
+                >やめる</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -139,40 +169,16 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
             <Gamepad2 size={20} className="lg:w-7 lg:h-7" /> ごほうびゲームで遊ぶ
           </a>
         )}
-
-        {/* 記録済み：取り消し */}
-        {status !== null && (
-          <div className="mt-3 text-center">
-            {!showUndo ? (
-              <button
-                onClick={() => setShowUndo(true)}
-                className="text-xs lg:text-sm text-soil-500 underline underline-offset-2 py-2 px-3"
-              >
-                記録を取り消す
-              </button>
-            ) : (
-              <div className="rounded-xl p-3 border-2 border-ink bg-terra-50 space-y-2">
-                <p className="text-sm font-bold">本当に取り消しますか？</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowUndo(false)}
-                    className="flex-1 py-2 rounded-lg border-2 border-ink/30 bg-white text-sm"
-                  >やめる</button>
-                  <button
-                    onClick={() => wrap(() => onUndo(slot).then(() => setShowUndo(false)))}
-                    disabled={loading}
-                    className="flex-1 py-2 rounded-lg border-2 border-ink bg-clay text-sm font-bold flex items-center justify-center gap-1"
-                  >
-                    <Trash2 size={14} /> 取り消す
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </section>
   )
+}
+
+/** "YYYY-MM-DD" → "M/D(曜)" */
+function shortDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const day = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, m - 1, d).getDay()]
+  return `${m}/${d}(${day})`
 }
 
 export function TodayWatering({
@@ -188,18 +194,15 @@ export function TodayWatering({
   const showTomorrowEvening = isDualSlotDate(tomorrowStr)
 
   return (
-    <div className="space-y-4 lg:space-y-5">
+    <div className="space-y-4">
 
-      {/* 日付ヘッダー */}
-      <div className="px-1 flex items-end justify-between gap-2">
-        <div>
-          {/* マスキングテープを貼ったような見出し */}
-          <p className="inline-block -rotate-2 bg-sun/80 border-x-2 border-dashed border-ink/25 px-3 py-0.5 text-sm lg:text-lg font-black tracking-wider">
-            今日の水やり
-          </p>
-          <p className="text-3xl lg:text-5xl font-black mt-1.5 tracking-tight">{formatDate(todayStr)}</p>
-        </div>
-        <p className="text-xs lg:text-sm text-soil-500 pb-1.5">記録する人：<span className="font-bold text-ink">{userName}</span></p>
+      {/* 日付ヘッダー（記録する人の名前は画面上部のヘッダーに表示） */}
+      <div className="px-1">
+        {/* マスキングテープを貼ったような見出し */}
+        <p className="inline-block -rotate-2 bg-sun/80 border-x-2 border-dashed border-ink/25 px-3 py-1 text-sm lg:text-lg font-black tracking-wider">
+          今日の水やり
+        </p>
+        <p className="text-3xl lg:text-5xl font-black mt-2 tracking-tight tabular-nums">{formatDate(todayStr)}</p>
       </div>
 
       <SlotCard
@@ -225,19 +228,20 @@ export function TodayWatering({
         />
       )}
 
-      {/* 明日の担当 */}
-      <section className="hand-card p-4 lg:p-5">
-        <p className="text-sm lg:text-base font-bold text-soil-500 mb-2">あした（{formatDate(tomorrowStr)}）の担当</p>
-        <div className="space-y-1.5 text-base lg:text-xl">
+      {/* 明日の担当（脇役なので、影なし・細い線で軽く） */}
+      <section className="soft-card p-4 lg:p-6">
+        <p className="text-sm lg:text-base text-soil-500 mb-2">
+          <span className="font-bold mr-2">あしたの担当</span>
+          <span className="tabular-nums">{shortDate(tomorrowStr)}</span>
+        </p>
+        <div className="space-y-2 text-base lg:text-xl">
           <div className="flex items-center gap-2">
-            <SunIcon size={22} />
-            <span className="text-soil-500 shrink-0">朝</span>
+            <SlotChip slot="morning" />
             <span className="font-black">{shiftNames(tomorrowShift, 'morning')}</span>
           </div>
           {showTomorrowEvening && (
             <div className="flex items-center gap-2">
-              <MoonIcon size={22} />
-              <span className="text-soil-500 shrink-0">夜</span>
+              <SlotChip slot="evening" />
               <span className="font-black">{shiftNames(tomorrowShift, 'evening')}</span>
             </div>
           )}

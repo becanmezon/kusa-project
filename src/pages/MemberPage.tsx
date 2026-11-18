@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { LogoSprout, WateringCanIcon } from '../components/illust/Illust'
-import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2, BarChart3 } from 'lucide-react'
+import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2 } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
@@ -382,7 +382,8 @@ export function MemberPage() {
             }
           }}
           className="text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-0.5"
-          aria-label={`名前：${userName}（タップで変更）`}
+          aria-label={`記録する人：${userName}（タップで変更）`}
+          title="記録する人（押すと変更できます）"
         >
           {userName}
         </button>
@@ -424,8 +425,9 @@ export function MemberPage() {
           </div>
           {/* PCでは今日の画面の右に履歴を並べて表示 */}
           {isDesktop && (
-            <div className="h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl">
+            <div className="h-[calc(100vh-7rem)]">
               <WateringHistory
+                fill
                 history={buildWateringHistory(waterings, historyPastDays + 1)}
                 shifts={shifts}
                 pastDays={historyPastDays}
@@ -441,10 +443,10 @@ export function MemberPage() {
           <div className="lg:max-w-3xl lg:mx-auto">
           <Link
             to="/summary"
-            className="hand-card mb-4 flex items-center justify-between px-4 py-3 hover:bg-sky/40"
+            className="soft-card mb-4 flex items-center justify-between px-4 lg:px-6 py-3 hover:bg-sky/40"
           >
             <span className="flex items-center gap-2 font-black whitespace-nowrap">
-              <BarChart3 size={20} />月のまとめを見る
+              月のまとめを見る
             </span>
             <span className="text-sm text-soil-400 truncate ml-3"><span className="hidden sm:inline">達成率・ランキング・人気の投稿 </span>›</span>
           </Link>

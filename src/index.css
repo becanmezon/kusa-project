@@ -60,6 +60,13 @@
   box-shadow: 3px 4px 0 rgba(46, 71, 27, 0.16);
 }
 
+/* 脇役のカード：影なし・細い線で、主役のカードより一段軽く */
+@utility soft-card {
+  background-color: #fffdf7;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 28%, transparent);
+  border-radius: 22px 18px 24px 20px / 20px 24px 18px 22px;
+}
+
 /* 手描き風のボタン：線で囲んで、右下に深緑の影（押すと沈む） */
 @utility hand-btn {
   border: 2px solid var(--color-ink);
