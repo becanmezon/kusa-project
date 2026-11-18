@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { GardenScene, LogoSprout, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, type SceneState } from '../components/illust/Illust'
 import { fetchWaterings, fetchShifts, upsertWatering, deleteWateringByDateSlot } from '../lib/db'
 import { formatDate, formatTime, effectiveNow } from '../lib/utils'
@@ -130,13 +131,17 @@ export function DisplayPage() {
     >
       {/* ヘッダー */}
       <header className="bg-sky border-b-2 border-ink px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
+        <Link
+          to="/"
+          className="flex items-center gap-2 rounded-full -ml-2 pl-2 pr-4 py-1 hover:bg-white/50"
+          aria-label="草プロジェクトの今日の画面へ"
+        >
           <LogoSprout size={44} />
           <div className="leading-tight">
             <p className="font-black text-xl">草プロジェクト</p>
             <p className="text-xs text-soil-500">別館 展示ディスプレイ</p>
           </div>
-        </div>
+        </Link>
         <div className="text-right leading-tight">
           <p className="font-black text-lg">{formatDate(dateStr)}</p>
           <p className="text-xs text-soil-500">

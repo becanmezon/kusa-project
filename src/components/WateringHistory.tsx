@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { DoneMark, MissMark, TodoMark, RainCloudIcon, SunIcon, MoonIcon } from './illust/Illust'
+import { DoneMark, MissMark, TodoMark, RainCloudIcon } from './illust/Illust'
 import { formatDate, today } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
@@ -20,44 +20,90 @@ function buildTimeline(baseStr: string, pastDays: number): string[] {
   })
 }
 
-function Names({ names }: { names: string[] }) {
+type SlotKind = 'morning' | 'evening'
+
+/**
+ * 1枠ぶんの行。列を固定して、どの日もマークと名前が同じ位置に並ぶようにする
+ * [朝/夜] [マーク] [名前・メモ]
+ */
+function SlotLine({ slot, showSlot, icon, children }: {
+  slot: SlotKind
+  showSlot: boolean
+  icon: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
-    <span className={`text-sm ${names.length > 0 ? 'font-bold' : 'text-soil-400'}`}>
-      {names.length > 0 ? names.join('・') : '担当なし'}
-    </span>
+    <div className="grid grid-cols-[1.75rem_1.5rem_minmax(0,1fr)] items-start gap-x-1.5 min-h-6">
+      <span className="pt-0.5">
+        {showSlot && (
+          <span className={`inline-block w-6 text-center text-[11px] font-black rounded-md border leading-5 ${
+            slot === 'morning' ? 'bg-sun/40 border-ink/30' : 'bg-[#3f5d80] text-white border-[#3f5d80]'
+          }`}>
+            {slot === 'morning' ? '朝' : '夜'}
+          </span>
+        )}
+      </span>
+      <span className="flex items-center justify-center h-6">{icon}</span>
+      <div className="min-w-0 leading-6">{children}</div>
+    </div>
   )
 }
 
-function StatusBadge({ watering, compact = false, pending = false }: { watering: Watering | null; compact?: boolean; pending?: boolean }) {
-  const sz = compact ? 18 : 22
-  const text = compact ? 'text-sm' : 'text-base'
+/** 予定（これからの担当） */
+function PlanLine({ slot, showSlot, names }: { slot: SlotKind; showSlot: boolean; names: string[] }) {
+  return (
+    <SlotLine slot={slot} showSlot={showSlot} icon={null}>
+      <span className={`text-sm ${names.length > 0 ? 'text-soil-600' : 'text-soil-400'}`}>
+        {names.length > 0 ? names.join('・') : '担当なし'}
+      </span>
+    </SlotLine>
+  )
+}
+
+/** 実績（今日・これまで） */
+function RecordLine({ slot, showSlot, watering, pending }: {
+  slot: SlotKind
+  showSlot: boolean
+  watering: Watering | null
+  pending: boolean
+}) {
   if (watering) {
     const rain = watering.status === 'rain'
     return (
-      <div className="text-right">
-        <div className="flex items-center justify-end gap-1.5">
-          {rain ? <RainCloudIcon size={sz + 2} title="雨" /> : <DoneMark size={sz} title="水やり済み" />}
-          <span className={`${text} font-bold`}>{watering.by_name}</span>
-          {rain && <span className="text-xs font-bold bg-sky border border-ink rounded-full px-1.5">雨</span>}
-        </div>
-        {watering.note && (
-          <p className="text-xs text-soil-500 mt-0.5">「{watering.note}」</p>
-        )}
-      </div>
+      <SlotLine
+        slot={slot}
+        showSlot={showSlot}
+        icon={rain ? <RainCloudIcon size={22} title="雨" /> : <DoneMark size={19} title="水やり済み" />}
+      >
+        <span className="text-sm font-bold">{watering.by_name}</span>
+        {watering.note && <p className="text-xs text-soil-500 leading-snug pb-0.5">「{watering.note}」</p>}
+      </SlotLine>
     )
   }
   if (pending) {
     return (
-      <div className="flex items-center justify-end gap-1.5">
-        <TodoMark size={sz} title="まだ" />
-        <span className={`${text} font-bold`}>まだ</span>
-      </div>
+      <SlotLine slot={slot} showSlot={showSlot} icon={<TodoMark size={19} title="まだ" />}>
+        <span className="text-sm font-bold">まだ</span>
+      </SlotLine>
     )
   }
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      <MissMark size={sz} title="記録なし" />
-      <span className={`${text} text-terra-700 font-bold`}>記録なし</span>
+    <SlotLine slot={slot} showSlot={showSlot} icon={<MissMark size={19} title="記録なし" />}>
+      <span className="text-sm font-bold text-terra-700">記録なし</span>
+    </SlotLine>
+  )
+}
+
+/** 日付の列（固定幅） */
+function DateCell({ date, tag }: { date: string; tag: 'today' | 'plan' | null }) {
+  return (
+    <div className="leading-6">
+      <span className={`text-sm ${tag === 'plan' ? 'text-soil-500' : 'font-bold'} ${tag === 'today' ? 'font-black' : ''}`}>
+        {formatDate(date)}
+      </span>
+      {tag === 'today' && (
+        <span className="block w-fit mt-0.5 bg-sun border-2 border-ink text-[11px] font-black px-2 rounded-full leading-4">今日</span>
+      )}
     </div>
   )
 }
@@ -120,6 +166,7 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
         <span className="flex items-center gap-1"><DoneMark size={16} /> 水やり済み</span>
         <span className="flex items-center gap-1"><RainCloudIcon size={18} /> 雨</span>
         <span className="flex items-center gap-1"><MissMark size={16} /> 記録なし</span>
+        <span className="text-soil-500 font-medium">マークのない行は、これからの担当予定</span>
       </div>
       <ul>
         {dates.map(date => {
@@ -128,33 +175,17 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
           // 未来の担当予定／過去の実績どちらも、その日のルールで朝夜2行か1行かを決める
           const dual     = isDualSlotDate(date)
 
+          const rowGrid = 'grid grid-cols-[7.25rem_minmax(0,1fr)] gap-x-2 items-start'
+
           // ── 未来: 担当予定 ─────────────────────────────
           if (isFuture) {
-            const shift        = shifts.find(s => s.date === date)
-            const morningNames = shift?.morning_names ?? []
-            const eveningNames = shift?.evening_names ?? []
-
+            const shift = shifts.find(s => s.date === date)
             return (
-              <li key={date} className="border-b border-ink/10 last:border-0 px-4 py-2 bg-paper/60">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] font-bold text-soil-500 border border-soil-300 rounded-full px-1.5 leading-4">予定</span>
-                    <span className="text-sm text-soil-500">{formatDate(date)}</span>
-                  </span>
-                  {dual ? (
-                    <div className="space-y-0.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <SunIcon size={16} title="朝" />
-                        <Names names={morningNames} />
-                      </div>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <MoonIcon size={16} title="夜" />
-                        <Names names={eveningNames} />
-                      </div>
-                    </div>
-                  ) : (
-                    <Names names={morningNames} />
-                  )}
+              <li key={date} className={`${rowGrid} border-b border-ink/10 last:border-0 px-4 py-2 bg-paper/70`}>
+                <DateCell date={date} tag="plan" />
+                <div className="space-y-0.5">
+                  <PlanLine slot="morning" showSlot={dual} names={shift?.morning_names ?? []} />
+                  {dual && <PlanLine slot="evening" showSlot names={shift?.evening_names ?? []} />}
                 </div>
               </li>
             )
@@ -169,36 +200,12 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
             <li
               key={date}
               ref={isToday ? todayRef : undefined}
-              className={`border-b border-ink/10 last:border-0 px-4 ${isToday ? 'bg-sun/30 py-3 border-y-2 border-y-ink' : 'py-2.5'}`}
+              className={`${rowGrid} border-b border-ink/10 last:border-0 px-4 ${isToday ? 'bg-sun/30 py-3 border-y-2 border-y-ink' : 'py-2'}`}
             >
-              <div className="flex items-start justify-between gap-2">
-                {/* 日付ラベル */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {isToday && (
-                    <span className="bg-sun border-2 border-ink text-xs font-black px-2 py-0.5 rounded-full leading-none">
-                      今日
-                    </span>
-                  )}
-                  <span className={`text-sm ${isToday ? 'font-black' : 'font-bold'}`}>
-                    {formatDate(date)}
-                  </span>
-                </div>
-
-                {/* 実績 */}
-                {dual ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5">
-                      <SunIcon size={16} title="朝" />
-                      <StatusBadge watering={morning} compact pending={isToday} />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <MoonIcon size={16} title="夜" />
-                      <StatusBadge watering={evening} compact pending={isToday} />
-                    </div>
-                  </div>
-                ) : (
-                  <StatusBadge watering={morning} pending={isToday} />
-                )}
+              <DateCell date={date} tag={isToday ? 'today' : null} />
+              <div className="space-y-0.5">
+                <RecordLine slot="morning" showSlot={dual} watering={morning} pending={isToday} />
+                {dual && <RecordLine slot="evening" showSlot watering={evening} pending={isToday} />}
               </div>
             </li>
           )
