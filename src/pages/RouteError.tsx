@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom'
+import { LogoSprout } from '../components/illust/Illust'
 
 const RETRY_KEY = 'kusa_route_retry'
 
@@ -32,7 +33,7 @@ export function RouteError() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-4 p-6 text-center">
-      <div className="text-5xl">🌱</div>
+      <LogoSprout size={80} />
       {retrying ? (
         <p className="text-soil-600">最新版を読み込んでいます…</p>
       ) : (
@@ -41,7 +42,7 @@ export function RouteError() {
             {is404 ? 'ページが見つかりませんでした' : 'エラーが発生しました'}
           </p>
           <p className="text-soil-500 text-sm">一度アプリ（タブ）を閉じて開き直すと直ることがあります</p>
-          <a href="/" className="bg-leaf-600 text-white font-bold rounded-full px-6 py-3">草プロジェクトに戻る</a>
+          <a href="/" className="hand-btn bg-grass font-black px-6 py-3">草プロジェクトに戻る</a>
         </>
       )}
     </div>

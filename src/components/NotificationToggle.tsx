@@ -60,7 +60,7 @@ export function NotificationToggle({ userName }: Props) {
     try {
       const { sent, failed } = await sendTestNotification(userName)
       if (sent > 0) {
-        showMsg(`送信成功（${sent}台）🌱 届かない場合はiPhone通知設定を確認してください`)
+        showMsg(`送信しました（${sent}台）。届かない場合はiPhoneの通知設定を確認してください`)
       } else {
         showMsg(
           `APNsへの送信に失敗（sent=0, failed=${failed}）。Supabaseの購読情報か、Vercelのログを確認してください`,
@@ -87,7 +87,7 @@ export function NotificationToggle({ userName }: Props) {
 
       {notSupported ? (
         <p className="text-xs text-soil-500 bg-soil-50 rounded-xl px-3 py-2.5 leading-relaxed">
-          📱 iPhoneの場合は Safari で「ホーム画面に追加」して開くと通知が使えます
+          iPhoneの場合は Safari で「ホーム画面に追加」して開くと通知が使えます
         </p>
       ) : (
         <>

@@ -34,8 +34,40 @@
   --color-terra-800: #552717;
   --color-terra-900: #2a130c;
 
-  --color-cream: #F6F3E9;
-  --color-cream-dark: #ece8d4;
+  --color-cream: #FBF8EF;
+  --color-cream-dark: #f1ebda;
+
+  /* 手描き風デザイン用の色 */
+  --color-ink: #2e2924;
+  --color-paper: #FBF8EF;
+  --color-sky: #bfe3f5;
+  --color-sky-dark: #8ccbea;
+  --color-sea: #3f98dc;
+  --color-grass: #8cc63f;
+  --color-grass-dark: #77b02c;
+  --color-sun: #f6c445;
+  --color-clay: #e08a5b;
+
+  --font-sans: 'Zen Maru Gothic', -apple-system, BlinkMacSystemFont, 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+}
+
+/* 手描き風：インク色の線で囲んだカード（角の丸みを少しずつ変えて手で描いた感じに） */
+@utility hand-card {
+  background-color: #ffffff;
+  border: 2px solid var(--color-ink);
+  border-radius: 22px 18px 24px 20px / 20px 24px 18px 22px;
+}
+
+/* 手描き風のボタン：線で囲んで、下に少しだけ影 */
+@utility hand-btn {
+  border: 2px solid var(--color-ink);
+  border-radius: 16px 13px 17px 14px / 14px 17px 13px 16px;
+  box-shadow: 0 3px 0 var(--color-ink);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  &:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--color-ink);
+  }
 }
 
 * {
@@ -44,9 +76,9 @@
 
 body {
   margin: 0;
-  background-color: #F6F3E9;
-  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
-    'Noto Sans JP', sans-serif;
+  background-color: #FBF8EF;
+  color: #2e2924;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 

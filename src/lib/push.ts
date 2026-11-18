@@ -81,7 +81,7 @@ export async function sendTestNotification(
   const res = await fetch('/api/send-push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_name: userName, title: '草プロジェクト', body: 'テスト通知です！🌱' }),
+    body: JSON.stringify({ user_name: userName, title: '草プロジェクト', body: 'テスト通知です！' }),
   })
   if (!res.ok) throw new Error(await res.text())
   return res.json() as Promise<{ sent: number; failed: number }>

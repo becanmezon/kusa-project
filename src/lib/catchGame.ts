@@ -1,3 +1,4 @@
+import { spriteImage, type SpriteName } from './catchSprites'
 // 野菜キャッチ：上から落ちてくる野菜をカゴで受け止めるPC向けゲーム
 // 描画は canvas（論理サイズ W×H を表示サイズに合わせて拡大）
 
@@ -13,7 +14,7 @@ const KEY_SPEED = 720 // px/秒
 type Kind = 'veg' | 'gold' | 'bad' | 'water'
 
 interface ItemDef {
-  emoji: string
+  sprite: SpriteName
   kind: Kind
   points: number
   weight: number // 出やすさ
@@ -21,10 +22,10 @@ interface ItemDef {
 
 // 野菜は3種類、ダメなもの（虫）は1種類。虫が半分近く落ちてくる鬼モード
 const ITEMS: ItemDef[] = [
-  { emoji: '🍅', kind: 'veg', points: 10, weight: 10 },
-  { emoji: '🥕', kind: 'veg', points: 10, weight: 10 },
-  { emoji: '🍆', kind: 'veg', points: 10, weight: 10 },
-  { emoji: '🐛', kind: 'bad', points: 0, weight: 27 },
+  { sprite: 'tomato', kind: 'veg', points: 10, weight: 10 },
+  { sprite: 'carrot', kind: 'veg', points: 10, weight: 10 },
+  { sprite: 'eggplant', kind: 'veg', points: 10, weight: 10 },
+  { sprite: 'bug', kind: 'bad', points: 0, weight: 27 },
 ]
 const TOTAL_WEIGHT = ITEMS.reduce((s, i) => s + i.weight, 0)
 
@@ -358,18 +359,9 @@ export class CatchGame {
       ctx.save()
       ctx.translate(it.x, it.y)
       ctx.rotate(it.rot)
-      if (it.def.kind === 'gold') {
-        ctx.shadowColor = '#ffd700'
-        ctx.shadowBlur = 24
-        ctx.font = `${it.size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
-        ctx.fillText(it.def.emoji, 0, 0)
-        ctx.globalCompositeOperation = 'source-atop'
-        ctx.fillStyle = 'rgba(255,200,0,0.55)'
-        ctx.fillRect(-it.size, -it.size, it.size * 2, it.size * 2)
-      } else {
-        ctx.font = `${it.size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
-        ctx.fillText(it.def.emoji, 0, 0)
-      }
+      const img = spriteImage(it.def.sprite)
+      const sz = it.size * 1.15
+      if (img.complete) ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz)
       ctx.restore()
     }
 

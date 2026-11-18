@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
+import { spriteUrl, type SpriteName } from '../lib/catchSprites'
 import { CatchGame, GAME_SECONDS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
 
-const RULES: { emoji: string; text: string }[] = [
-  { emoji: '🍅🥕🍆', text: '野菜をキャッチで10点' },
-  { emoji: '🐛', text: '虫をキャッチするとハートが減る（3回でおしまい）' },
+const RULES: { sprites: SpriteName[]; text: string }[] = [
+  { sprites: ['tomato', 'carrot', 'eggplant'], text: '野菜をキャッチで10点' },
+  { sprites: ['bug'], text: '虫をキャッチするとハートが減る（3回でおしまい）' },
 ]
 
 export function CatchPage() {
@@ -69,13 +70,13 @@ export function CatchPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <header className="bg-soil-900 text-white px-4 lg:px-6 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-soil-200 hover:text-white text-sm">
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-6 py-2.5 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-1.5 text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-1">
           <ArrowLeft size={18} /> 草プロジェクトに戻る
         </Link>
-        <h1 className="font-bold text-lg">🧺 野菜キャッチ</h1>
-        <div className="flex items-center gap-1 text-sm text-soil-200">
-          <Trophy size={16} className="text-yellow-400" /> ベスト {s?.best ?? 0}
+        <h1 className="font-black text-lg">野菜キャッチ</h1>
+        <div className="flex items-center gap-1 text-sm font-bold">
+          <Trophy size={16} /> ベスト {s?.best ?? 0}
         </div>
       </header>
 
@@ -121,19 +122,21 @@ export function CatchPage() {
           {/* ゲーム画面 */}
           <div
             ref={wrapRef}
-            className="relative rounded-2xl overflow-hidden shadow-lg border-4 border-leaf-200 cursor-none"
+            className="hand-card relative overflow-hidden cursor-none"
             onPointerMove={onPointerMove}
           >
             <canvas ref={canvasRef} className="block w-full" style={{ aspectRatio: `${W} / ${H}` }} />
 
             {s?.phase === 'ready' && (
               <Overlay>
-                <h2 className="text-3xl font-extrabold text-leaf-700 mb-2">🧺 野菜キャッチ</h2>
+                <h2 className="text-3xl font-black mb-2">野菜キャッチ</h2>
                 <p className="text-soil-600 mb-5">【鬼むず】大量に落ちてくる中から野菜だけをキャッチしよう！制限時間は{GAME_SECONDS}秒</p>
                 <ul className="text-left inline-flex flex-col gap-1.5 mb-5">
                   {RULES.map((r) => (
                     <li key={r.text} className="flex items-center gap-3">
-                      <span className="w-20 text-right text-xl">{r.emoji}</span>
+                      <span className="w-28 flex justify-end gap-1">
+                        {r.sprites.map(sp => <img key={sp} src={spriteUrl(sp)} alt="" className="w-8 h-8" />)}
+                      </span>
                       <span>{r.text}</span>
                     </li>
                   ))}
@@ -158,7 +161,7 @@ export function CatchPage() {
               <Overlay>
                 <p className="text-soil-500 mb-1">{s.life <= 0 ? 'ハートがなくなった…' : 'タイムアップ！'}</p>
                 <h2 className="text-6xl font-extrabold text-terra-600 mb-2 tabular-nums">{s.score}<span className="text-2xl ml-1">点</span></h2>
-                {s.isNewBest && <p className="text-yellow-600 font-bold mb-1">🏆 自己ベスト更新！</p>}
+                {s.isNewBest && <p className="font-black mb-1 bg-sun border-2 border-ink rounded-full px-3 py-0.5">自己ベスト更新！</p>}
                 <p className="text-soil-600 mb-1">キャッチした野菜：{s.caught}個</p>
                 <p className="text-sm text-soil-400 mb-5">これまでのベスト：{s.best}点</p>
                 <StartButton onClick={() => gameRef.current?.start()} label="もう一回" icon />
@@ -184,7 +187,7 @@ function StartButton({ onClick, label, icon }: { onClick: () => void; label: str
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 bg-leaf-600 hover:bg-leaf-700 text-white font-bold text-xl rounded-full px-10 py-4 shadow-md"
+      className="hand-btn flex items-center gap-2 bg-grass font-black text-xl px-10 py-4"
     >
       {icon && <RotateCcw size={20} />}{label}
     </button>

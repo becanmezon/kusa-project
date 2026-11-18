@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { LogoSprout, WateringCanIcon } from '../components/illust/Illust'
 import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2, BarChart3 } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
@@ -286,9 +287,9 @@ export function MemberPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-none mx-auto">
-        <header className="bg-soil-700 text-white px-4 py-3 flex items-center gap-2">
-          <span className="text-2xl">🌱</span>
-          <h1 className="font-bold text-base">草プロジェクト</h1>
+        <header className="bg-sky border-b-2 border-ink px-4 py-2.5 flex items-center gap-2">
+          <LogoSprout size={34} />
+          <h1 className="font-black text-lg">草プロジェクト</h1>
         </header>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-soil-400">
@@ -304,14 +305,14 @@ export function MemberPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-cream flex flex-col max-w-md lg:max-w-none mx-auto">
-        <header className="bg-soil-700 text-white px-4 py-3 flex items-center gap-2">
-          <span className="text-2xl">🌱</span>
-          <h1 className="font-bold text-base">草プロジェクト</h1>
+        <header className="bg-sky border-b-2 border-ink px-4 py-2.5 flex items-center gap-2">
+          <LogoSprout size={34} />
+          <h1 className="font-black text-lg">草プロジェクト</h1>
         </header>
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="text-center">
             <p className="text-terra-500 font-medium mb-3">{error}</p>
-            <button onClick={loadAll} className="bg-leaf-500 text-white px-6 py-2 rounded-xl font-bold">
+            <button onClick={loadAll} className="hand-btn bg-grass px-6 py-2 font-black">
               再読み込み
             </button>
           </div>
@@ -325,15 +326,15 @@ export function MemberPage() {
       {/* テストモードバナー */}
       {isTestMode() && (
         <div className="bg-yellow-300 text-yellow-900 text-xs font-bold px-4 py-2 text-center">
-          🧪 テストモード: {todayStr} として表示中 ／ URLから ?testdate= を削除すると解除
+          テストモード：{todayStr} として表示中（URLから ?testdate= を消すと元に戻ります）
         </div>
       )}
 
       {/* ヘッダー */}
-      <header className="bg-soil-700 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🌱</span>
-          <h1 className="font-bold text-base">草プロジェクト</h1>
+          <LogoSprout size={34} className="lg:w-11 lg:h-11" />
+          <h1 className="font-black text-lg lg:text-2xl">草プロジェクト</h1>
         </div>
         {/* PC用タブ（スマホでは下のタブを使う） */}
         <nav className="hidden lg:flex items-center gap-1">
@@ -345,8 +346,8 @@ export function MemberPage() {
             <button
               key={t.key}
               onClick={t.onClick}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                tab === t.key ? 'bg-leaf-600 text-white' : 'text-soil-200 hover:bg-soil-600'
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-base font-bold border-2 transition-colors ${
+                tab === t.key ? 'bg-white border-ink' : 'border-transparent hover:bg-white/50'
               }`}
             >
               {t.icon}{t.label}
@@ -356,7 +357,7 @@ export function MemberPage() {
         <div className="flex items-center gap-3">
         <Link
           to="/catch"
-          className="hidden lg:flex items-center gap-1.5 text-sm text-soil-200 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-3 py-1"
+          className="hidden lg:flex items-center gap-1.5 text-sm font-bold bg-sun border-2 border-ink rounded-full px-3 py-1 hover:brightness-95"
         >
           <Gamepad2 size={16} />野菜キャッチ
         </Link>
@@ -364,9 +365,9 @@ export function MemberPage() {
           onClick={handleRefresh}
           disabled={refreshing}
           aria-label="最新の状態に更新"
-          className="text-soil-200 disabled:opacity-60 p-1 -m-1"
+          className="disabled:opacity-60 p-2 -m-1 rounded-full hover:bg-white/50"
         >
-          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
         </button>
         <button
           onClick={() => {
@@ -375,14 +376,15 @@ export function MemberPage() {
               setUserName(null)
             }
           }}
-          className="text-xs text-soil-300 underline underline-offset-2"
+          className="text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-0.5"
+          aria-label={`名前：${userName}（タップで変更）`}
         >
           {userName}
         </button>
         </div>
       </header>
       {refreshMsg && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-soil-700 text-white text-xs px-4 py-2 rounded-full shadow">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 bg-white border-2 border-ink text-sm font-bold px-4 py-2 rounded-full">
           {refreshMsg}
         </div>
       )}
@@ -434,10 +436,10 @@ export function MemberPage() {
           <div className="lg:max-w-3xl lg:mx-auto">
           <Link
             to="/summary"
-            className="mb-3 flex items-center justify-between bg-white rounded-2xl shadow-sm px-4 py-3 hover:bg-leaf-50"
+            className="hand-card mb-4 flex items-center justify-between px-4 py-3 hover:bg-sky/40"
           >
-            <span className="flex items-center gap-2 font-bold text-soil-800 whitespace-nowrap">
-              <BarChart3 size={18} className="text-leaf-600" />月のまとめを見る
+            <span className="flex items-center gap-2 font-black whitespace-nowrap">
+              <BarChart3 size={20} />月のまとめを見る
             </span>
             <span className="text-sm text-soil-400 truncate ml-3"><span className="hidden sm:inline">達成率・ランキング・人気の投稿 </span>›</span>
           </Link>
@@ -472,18 +474,18 @@ export function MemberPage() {
 
       {/* ボトムナビ */}
       <nav
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-soil-100 flex overflow-visible z-40 lg:hidden"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t-2 border-ink flex overflow-visible z-40 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
 
         {/* W タブ（2秒以内に5回連続タップで管理画面へ） */}
         <button
           onClick={handleWhisperTabTap}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
-            tab === 'whisper' ? 'text-leaf-600' : 'text-soil-400'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-bold transition-colors ${
+            tab === 'whisper' ? 'text-ink' : 'text-soil-400'
           }`}
         >
-          <Feather size={20} />
+          <Feather size={22} strokeWidth={tab === 'whisper' ? 2.6 : 2} />
           W
         </button>
 
@@ -491,10 +493,13 @@ export function MemberPage() {
         <div className="flex-1 flex justify-center relative">
           <button
             onClick={() => changeTab('today')}
-            className="absolute -top-6 w-16 h-16 rounded-full bg-leaf-600 text-white shadow-xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+            className={`absolute -top-7 w-[4.5rem] h-[4.5rem] rounded-full border-2 border-ink flex flex-col items-center justify-center active:scale-95 transition-transform ${
+              tab === 'today' ? 'bg-grass' : 'bg-white'
+            }`}
+            aria-label="今日の水やり"
           >
-            <Droplets size={22} />
-            <span className="text-xs font-bold">今日</span>
+            <WateringCanIcon size={30} />
+            <span className="text-xs font-black">今日</span>
           </button>
           <div className="h-14" />
         </div>
@@ -502,11 +507,11 @@ export function MemberPage() {
         {/* 履歴タブ（2秒以内に5回連続タップで展示モードへ） */}
         <button
           onClick={handleHistoryTabTap}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-medium transition-colors ${
-            tab === 'history' ? 'text-leaf-600' : 'text-soil-400'
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-3 text-xs font-bold transition-colors ${
+            tab === 'history' ? 'text-ink' : 'text-soil-400'
           }`}
         >
-          <History size={20} />
+          <History size={22} strokeWidth={tab === 'history' ? 2.6 : 2} />
           履歴
         </button>
 

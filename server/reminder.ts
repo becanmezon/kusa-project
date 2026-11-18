@@ -34,7 +34,7 @@ const JST_OFFSET_MS = 9 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
-const SLOT_LABEL: Record<Slot, string> = { morning: '☀️朝', evening: '🌙夜' }
+const SLOT_LABEL: Record<Slot, string> = { morning: '朝', evening: '夜' }
 
 /** 日本時間の「今日」を "YYYY-MM-DD" で返す（サーバーはUTCで動くため補正する） */
 function jstDateStr(): string {
@@ -120,8 +120,8 @@ async function buildEveningTargets(date: string): Promise<{ targets: Target[]; s
   return {
     targets: [{
       names,
-      title: '🌙 夜の水やり',
-      body: `今日（${shortDate(date)}）の夜の水やり担当です。よろしくお願いします🌱`,
+      title: '夜の水やり',
+      body: `今日（${shortDate(date)}）の夜の水やり担当です。よろしくお願いします！`,
     }],
   }
 }
@@ -155,7 +155,7 @@ async function buildTomorrowTargets(date: string): Promise<{ targets: Target[]; 
       const label = key.split('+').map(s => SLOT_LABEL[s as Slot]).join('・')
       return {
         names,
-        title: '🌱 明日の水やり担当',
+        title: '明日の水やり担当',
         body: `明日（${shortDate(date)}）の${label}の水やり担当です。よろしくお願いします！`,
       }
     }),

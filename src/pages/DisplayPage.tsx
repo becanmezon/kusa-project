@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Droplets, CheckCircle, CloudRain, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
+import { GardenScene, LogoSprout, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, type SceneState } from '../components/illust/Illust'
 import { fetchWaterings, fetchShifts, upsertWatering, deleteWateringByDateSlot } from '../lib/db'
 import { formatDate, formatTime, effectiveNow } from '../lib/utils'
 import { isDualSlotDate, type Slot } from '../lib/wateringRule'
@@ -104,26 +105,12 @@ export function DisplayPage() {
   })
 
   const label = slot === 'morning' ? '朝の水やり' : '夜の水やり'
-  const emoji = slot === 'morning' ? '☀️' : '🌙'
-
-  const cardBg = status === null
-    ? 'bg-terra-50 border-4 border-terra-400'
-    : status === 'watered'
-      ? 'bg-leaf-50 border-4 border-leaf-300'
-      : 'bg-blue-50 border-4 border-blue-200'
+  const night = slot === 'evening'
+  const scene: SceneState = status === null ? 'todo' : status === 'watered' ? 'done' : 'rain'
 
   const headline = status === null
-    ? 'まだです'
-    : status === 'watered' ? '済み' : '雨だった'
-
-  const headlineColor = status === null
-    ? 'text-terra-600'
-    : status === 'watered' ? 'text-leaf-700' : 'text-blue-600'
-
-  const Icon = status === null ? Droplets : status === 'watered' ? CheckCircle : CloudRain
-  const iconColor = status === null
-    ? 'text-terra-500'
-    : status === 'watered' ? 'text-leaf-500' : 'text-blue-400'
+    ? 'まだ水やりしていません'
+    : status === 'watered' ? '水やりおわり！' : '雨だったのでお休み'
 
   if (loading) {
     return (
@@ -142,17 +129,17 @@ export function DisplayPage() {
       }}
     >
       {/* ヘッダー */}
-      <header className="bg-soil-700 text-white px-6 py-4 flex items-center justify-between shrink-0">
+      <header className="bg-sky border-b-2 border-ink px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-3xl">🌱</span>
+          <LogoSprout size={44} />
           <div className="leading-tight">
-            <p className="font-bold text-lg">草プロジェクト</p>
-            <p className="text-xs text-soil-300">別館 展示ディスプレイ</p>
+            <p className="font-black text-xl">草プロジェクト</p>
+            <p className="text-xs text-soil-500">別館 展示ディスプレイ</p>
           </div>
         </div>
         <div className="text-right leading-tight">
-          <p className="font-bold text-base">{formatDate(dateStr)}</p>
-          <p className="text-xs text-soil-300">
+          <p className="font-black text-lg">{formatDate(dateStr)}</p>
+          <p className="text-xs text-soil-500">
             {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')} 更新
           </p>
         </div>
@@ -166,22 +153,29 @@ export function DisplayPage() {
 
       {/* 画面いっぱいの水やりカード */}
       <main className="flex-1 flex flex-col p-5 min-h-0">
-        <div className={`flex-1 min-h-0 rounded-3xl shadow-lg flex flex-col items-center justify-center p-8 gap-6 overflow-y-auto ${cardBg}`}>
-          <Icon className={iconColor} size={72} />
-
+        <div className="hand-card flex-1 min-h-0 flex flex-col overflow-y-auto">
+          <div
+            className="border-b-2 border-ink shrink-0"
+            style={{ background: `linear-gradient(to bottom, ${scene === 'rain' ? (night ? '#53657a' : '#cfdbe4') : night ? '#3f5d80' : '#bfe3f5'} 82.6%, #2e2924 82.6%, #2e2924 calc(82.6% + 2px), #c9e59a calc(82.6% + 2px))` }}
+          >
+            <GardenScene state={scene} night={night} fit="meet" className="block w-full h-56" />
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
           <div className="text-center">
-            <p className="text-2xl text-soil-500 font-medium">{emoji} {label}</p>
-            <p className={`text-6xl font-black mt-2 ${headlineColor}`}>{headline}</p>
+            <p className="text-2xl text-soil-500 font-bold flex items-center justify-center gap-2">
+              {night ? <MoonIcon size={32} /> : <SunIcon size={32} />} {label}
+            </p>
+            <p className="text-5xl font-black mt-2">{headline}</p>
           </div>
 
           {/* 記録済み：誰が何時に対応したか */}
           {status !== null && watering && (
-            <div className="bg-white/70 rounded-2xl px-6 py-4 text-center">
-              <p className="text-xl text-soil-600">
+            <div className="bg-paper border-2 border-ink/15 rounded-2xl px-6 py-4 text-center">
+              <p className="text-xl">
                 <span className="font-bold">{watering.by_name}</span>
                 {' さんが '}
                 <span className="font-bold">{formatTime(watering.created_at)}</span>
-                {status === 'watered' ? ' に対応' : ' に雨と判断'}
+                {status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}
               </p>
             </div>
           )}
@@ -189,23 +183,23 @@ export function DisplayPage() {
           {/* 未対応：担当表示 + 操作ボタン */}
           {status === null && (
             <>
-              <p className="text-lg text-soil-500">
-                担当: <span className="font-bold text-soil-700">{recorderName}</span>
+              <p className="text-2xl text-soil-500">
+                今日の担当<span className="font-black text-ink ml-3">{recorderName}</span>
               </p>
               <div className="w-full flex flex-col gap-4 mt-2">
                 <button
                   onClick={handleWater}
                   disabled={actionLoading}
-                  className="w-full bg-leaf-500 text-white font-bold py-8 rounded-2xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-3 text-3xl shadow-md"
+                  className="hand-btn w-full bg-grass font-black py-8 disabled:opacity-50 flex items-center justify-center gap-3 text-3xl"
                 >
-                  <Droplets size={36} /> 水やりした
+                  <WateringCanIcon size={48} /> 水やりした
                 </button>
                 <button
                   onClick={handleRain}
                   disabled={actionLoading}
-                  className="w-full bg-blue-400 text-white font-bold py-8 rounded-2xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-3 text-3xl shadow-md"
+                  className="hand-btn w-full bg-sky font-black py-8 disabled:opacity-50 flex items-center justify-center gap-3 text-3xl"
                 >
-                  <CloudRain size={36} /> 雨だった
+                  <RainCloudIcon size={48} /> 雨だった
                 </button>
               </div>
             </>
@@ -218,25 +212,25 @@ export function DisplayPage() {
                 <div className="text-center">
                   <button
                     onClick={() => setShowUndo(true)}
-                    className="text-base text-soil-400 underline underline-offset-4 py-3 px-4"
+                    className="text-base text-soil-500 underline underline-offset-4 py-3 px-4"
                   >
-                    取り消す
+                    記録を取り消す
                   </button>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl p-4 border-2 border-terra-200 space-y-3">
-                  <p className="text-base text-terra-600 font-medium text-center">本当に取り消しますか？</p>
+                <div className="bg-terra-50 rounded-2xl p-4 border-2 border-ink space-y-3">
+                  <p className="text-lg font-bold text-center">本当に取り消しますか？</p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowUndo(false)}
-                      className="flex-1 py-4 rounded-xl border-2 border-soil-200 text-soil-500 font-bold text-lg"
+                      className="flex-1 py-4 rounded-xl border-2 border-ink/30 bg-white font-bold text-lg"
                     >
-                      キャンセル
+                      やめる
                     </button>
                     <button
                       onClick={handleUndo}
                       disabled={actionLoading}
-                      className="flex-1 py-4 rounded-xl bg-terra-500 text-white font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="flex-1 py-4 rounded-xl border-2 border-ink bg-clay font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <Trash2 size={20} /> 取り消す
                     </button>
@@ -245,6 +239,7 @@ export function DisplayPage() {
               )}
             </div>
           )}
+          </div>
         </div>
       </main>
     </div>

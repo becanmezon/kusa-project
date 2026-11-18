@@ -1,4 +1,5 @@
 import { Feather, ChevronRight, MessageCircle } from 'lucide-react'
+import { ReactionIcon } from './illust/Illust'
 import { timeLabel } from './PostTimeline'
 import type { Post, Reaction, Reply } from '../types'
 
@@ -27,7 +28,7 @@ export function LatestPosts({ posts, reactions, replies, getImageUrl, onOpenAll 
   const images = post?.image_paths ?? []
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-soil-100 overflow-hidden">
+    <div className="hand-card overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <p className="text-sm text-soil-400 flex items-center gap-1.5">
           <Feather size={15} /> Wの最新の投稿
@@ -67,8 +68,8 @@ export function LatestPosts({ posts, reactions, replies, getImageUrl, onOpenAll 
           {(emojiCounts.length > 0 || replyCount > 0) && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-soil-500">
               {emojiCounts.map(([emoji, count]) => (
-                <span key={emoji} className="bg-cream border border-soil-100 rounded-full px-2.5 py-0.5">
-                  {emoji} {count}
+                <span key={emoji} className="inline-flex items-center gap-1 bg-white border-2 border-ink/20 rounded-full pl-1.5 pr-2.5 py-0.5 font-bold">
+                  <ReactionIcon name={emoji} size={20} /> {count}
                 </span>
               ))}
               {replyCount > 0 && (

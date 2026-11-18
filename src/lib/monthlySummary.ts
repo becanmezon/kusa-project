@@ -182,32 +182,31 @@ function excerpt(body: string, max = 24): string {
 
 /** W に投稿する文章を作る */
 export function buildSummaryPostText(s: MonthlySummary): string {
-  const medals = ['🥇', '🥈', '🥉']
   const lines: string[] = []
-  lines.push(`🌱 ${s.label}の草プロまとめ 🌱${s.isPartial ? '（途中経過）' : ''}`)
+  lines.push(`【${s.label}の草プロまとめ】${s.isPartial ? '（途中経過）' : ''}`)
   lines.push('')
-  lines.push(`💧 水やり達成率 ${s.rate}%（${s.done}/${s.required}回）`)
+  lines.push(`■ 水やり達成率 ${s.rate}%（${s.done}/${s.required}回）`)
   lines.push(`\u3000水やり ${s.watered}回 ／ 雨 ${s.rain}回 ／ 未記録 ${s.missed}回`)
   if (s.ranking.length > 0) {
     lines.push('')
-    lines.push('🏆 水やり記録ランキング')
+    lines.push('■ 水やり記録ランキング')
     const top = s.ranking.slice(0, 5)
     const places = rankPlaces(top.map((r) => r.count))
     top.forEach((r, i) => {
       const place = places[i]
-      lines.push(`${medals[place] ?? `${place + 1}位`} ${r.name}さん ${r.count}回`)
+      lines.push(`${place + 1}位 ${r.name}さん ${r.count}回`)
     })
   }
   lines.push('')
-  lines.push(`📣 Wの投稿 ${s.postCount}件（リアクション ${s.reactionTotal}・返信 ${s.replyTotal}）`)
+  lines.push(`■ Wの投稿 ${s.postCount}件（リアクション ${s.reactionTotal}・返信 ${s.replyTotal}）`)
   if (s.popular[0]) {
     const p = s.popular[0]
     lines.push(`\u3000いちばん人気：${p.post.by_name}さん「${excerpt(p.post.body)}」`)
   }
   if (s.vegetableCount > 0) {
-    lines.push(`📸 野菜の写真 ${s.vegetableCount}枚`)
+    lines.push(`■ 野菜の写真 ${s.vegetableCount}枚`)
   }
   lines.push('')
-  lines.push(`${s.label}もありがとうございました！来月もよろしくお願いします🙌`)
+  lines.push(`${s.label}もありがとうございました！来月もよろしくお願いします！`)
   return lines.join('\n')
 }

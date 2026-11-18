@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { ReactionIcon } from './illust/Illust'
+import { REACTION_KEYS, reactionLabel } from './illust/reactionMeta'
 import type { Post, Reaction, Reply } from '../types'
 
 const MAX_IMAGES = 4
 const MAX_BODY = 1000 // 投稿本文の最大文字数
-const EMOJIS = ['❤️', '👍', '🌱', '🎉', '🫡', '😭', '🦀']
+// リアクションの種類（保存される値は従来の文字列キー。表示は手描きアイコン）
+const EMOJIS = REACTION_KEYS
 
 interface Props {
   userName: string
@@ -247,14 +250,15 @@ function EmojiPill({ emoji, count, reacted, isActive, onToggle, onShowNames, onH
         // タッチ操作はpointerUpで処理済みのため、マウスクリックのみここで処理
         if (lastPointerType.current === 'mouse') onToggle()
       }}
-      className={`select-none flex items-center gap-1 px-2.5 py-1 rounded-full text-sm border transition-colors ${
+      className={`select-none flex items-center gap-1 pl-1.5 pr-2.5 py-0.5 rounded-full text-sm border-2 transition-colors ${
         reacted
-          ? 'bg-leaf-100 border-leaf-400 text-leaf-700 font-medium'
-          : 'bg-soil-50 border-soil-200 text-soil-600 hover:border-leaf-300'
-      } ${isActive ? 'ring-2 ring-leaf-300 ring-offset-1' : ''}`}
+          ? 'bg-sun/40 border-ink font-bold'
+          : 'bg-white border-ink/20 hover:border-ink/50'
+      } ${isActive ? 'ring-2 ring-sky-dark ring-offset-1' : ''}`}
+      aria-label={`${reactionLabel(emoji)} ${count}`}
     >
-      <span>{emoji}</span>
-      <span className="text-xs tabular-nums">{count}</span>
+      <ReactionIcon name={emoji} size={20} />
+      <span className="text-xs tabular-nums font-bold">{count}</span>
     </button>
   )
 }
@@ -340,11 +344,12 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
         {/* 絵文字を追加/取り消しするピッカー */}
         <button
           onClick={handlePickerToggle}
-          className={`flex items-center justify-center w-8 h-7 rounded-full border transition-colors ${
+          className={`flex items-center justify-center w-9 h-8 rounded-full border-2 transition-colors ${
             pickerOpen
-              ? 'bg-soil-100 border-soil-300 text-soil-600'
-              : 'bg-soil-50 border-soil-200 text-soil-400 hover:border-leaf-300 hover:text-leaf-500'
+              ? 'bg-sky border-ink'
+              : 'bg-white border-ink/20 text-soil-500 hover:border-ink/50'
           }`}
+          aria-label="リアクションする"
         >
           <Plus size={13} />
         </button>
@@ -352,18 +357,20 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
         {pickerOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
-            <div className="absolute bottom-full mb-1.5 right-0 bg-white rounded-2xl shadow-xl border border-soil-100 p-2 flex gap-1 z-30">
+            <div className="absolute bottom-full mb-1.5 left-0 bg-white rounded-2xl border-2 border-ink p-1.5 flex gap-0.5 z-30">
               {EMOJIS.map(emoji => {
                 const alreadyReacted = postReactions.some(r => r.emoji === emoji && r.by_name === userName)
                 return (
                   <button
                     key={emoji}
                     onClick={() => handlePickerEmoji(emoji)}
-                    className={`text-xl p-1.5 rounded-xl active:scale-90 transition-transform ${
-                      alreadyReacted ? 'bg-leaf-100 ring-1 ring-leaf-400' : 'hover:bg-soil-50'
+                    className={`p-1.5 rounded-xl active:scale-90 transition-transform ${
+                      alreadyReacted ? 'bg-sun/40 ring-2 ring-ink' : 'hover:bg-paper'
                     }`}
+                    aria-label={reactionLabel(emoji)}
+                    title={reactionLabel(emoji)}
                   >
-                    {emoji}
+                    <ReactionIcon name={emoji} size={26} />
                   </button>
                 )
               })}
@@ -374,8 +381,8 @@ function ReactionBar({ postId, reactions, userName, onReact }: {
 
       {/* 名前一覧 */}
       {activeEmoji && activeNames.length > 0 && (
-        <div className="relative z-20 mt-1.5 flex items-center gap-1.5 bg-soil-50 rounded-xl px-3 py-1.5 text-sm">
-          <span>{activeEmoji}</span>
+        <div className="relative z-20 mt-1.5 flex items-center gap-1.5 bg-paper border-2 border-ink/20 rounded-xl px-3 py-1.5 text-sm">
+          <ReactionIcon name={activeEmoji} size={18} />
           <span className="text-soil-600">{activeNames.join('、')}</span>
         </div>
       )}
@@ -411,7 +418,7 @@ function ReplyForm({ onSubmit }: { onSubmit: (body: string) => Promise<void> }) 
       <button
         onClick={handleSubmit}
         disabled={!body.trim() || submitting}
-        className="bg-leaf-500 text-white font-bold px-3 py-2 rounded-xl text-sm active:scale-95 transition-transform disabled:opacity-40 shrink-0"
+        className="hand-btn bg-grass font-black px-3 py-2 text-sm disabled:opacity-40 shrink-0"
       >
         送信
       </button>
@@ -495,7 +502,7 @@ export function PostTimeline({
     <div className="space-y-4">
 
       {/* 投稿フォーム */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100 space-y-3">
+      <div className="hand-card p-4 space-y-3">
         <textarea
           value={body}
           onChange={e => setBody(e.target.value.slice(0, MAX_BODY))}
@@ -553,7 +560,7 @@ export function PostTimeline({
             <button
               onClick={handlePost}
               disabled={!canPost}
-              className="bg-leaf-500 text-white font-bold px-5 py-2 rounded-xl text-sm active:scale-95 transition-transform disabled:opacity-40"
+              className="hand-btn bg-grass font-black px-5 py-2 text-sm disabled:opacity-40"
             >
               投稿
             </button>
@@ -576,7 +583,7 @@ export function PostTimeline({
             const isExpanded  = expandedPostId === post.id
 
             return (
-              <li key={post.id} className="bg-white rounded-2xl p-4 shadow-sm border border-soil-100">
+              <li key={post.id} className="hand-card p-4">
 
                 {/* ヘッダー */}
                 <div className="flex items-start justify-between mb-2">
@@ -623,7 +630,7 @@ export function PostTimeline({
                       <button
                         onClick={() => saveEdit(post)}
                         disabled={savingEdit || (!editBody.trim() && post.image_paths.length === 0)}
-                        className="bg-leaf-500 text-white font-bold px-4 py-1.5 rounded-lg text-sm active:scale-95 transition-transform disabled:opacity-40"
+                        className="hand-btn bg-grass font-black px-4 py-1.5 text-sm disabled:opacity-40"
                       >
                         {savingEdit ? '保存中…' : '保存'}
                       </button>

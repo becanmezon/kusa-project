@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
-import { CheckCircle, XCircle, CloudRain, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { DoneMark, MissMark, TodoMark, RainCloudIcon, SunIcon, MoonIcon } from './illust/Illust'
 import { formatDate, today } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
 import type { Watering, Shift } from '../types'
@@ -21,46 +22,42 @@ function buildTimeline(baseStr: string, pastDays: number): string[] {
 
 function Names({ names }: { names: string[] }) {
   return (
-    <span className={`text-sm ${names.length > 0 ? 'text-soil-700 font-medium' : 'text-soil-300'}`}>
-      {names.length > 0 ? names.join('・') : '人がいません'}
+    <span className={`text-sm ${names.length > 0 ? 'font-bold' : 'text-soil-400'}`}>
+      {names.length > 0 ? names.join('・') : '担当なし'}
     </span>
   )
 }
 
-function StatusBadge({ watering, compact = false }: { watering: Watering | null; compact?: boolean }) {
-  const sz = compact ? 13 : 15
-  if (watering?.status === 'watered') {
+function StatusBadge({ watering, compact = false, pending = false }: { watering: Watering | null; compact?: boolean; pending?: boolean }) {
+  const sz = compact ? 18 : 22
+  const text = compact ? 'text-sm' : 'text-base'
+  if (watering) {
+    const rain = watering.status === 'rain'
     return (
-      <div>
-        <div className="flex items-center gap-1">
-          <CheckCircle size={sz} className="text-leaf-500" />
-          <span className={`${compact ? 'text-xs' : 'text-sm'} text-leaf-700 font-medium`}>{watering.by_name}</span>
-          <span className="text-xs text-leaf-400 bg-leaf-50 px-1.5 py-0.5 rounded-full">済</span>
+      <div className="text-right">
+        <div className="flex items-center justify-end gap-1.5">
+          {rain ? <RainCloudIcon size={sz + 2} title="雨" /> : <DoneMark size={sz} title="水やり済み" />}
+          <span className={`${text} font-bold`}>{watering.by_name}</span>
+          {rain && <span className="text-xs font-bold bg-sky border border-ink rounded-full px-1.5">雨</span>}
         </div>
         {watering.note && (
-          <p className="text-xs text-soil-400 mt-0.5 pl-4">「{watering.note}」</p>
+          <p className="text-xs text-soil-500 mt-0.5">「{watering.note}」</p>
         )}
       </div>
     )
   }
-  if (watering?.status === 'rain') {
+  if (pending) {
     return (
-      <div>
-        <div className="flex items-center gap-1">
-          <CloudRain size={sz} className="text-blue-400" />
-          <span className={`${compact ? 'text-xs' : 'text-sm'} text-blue-600 font-medium`}>{watering.by_name}</span>
-          <span className="text-xs text-blue-400 bg-blue-50 px-1.5 py-0.5 rounded-full">雨</span>
-        </div>
-        {watering.note && (
-          <p className="text-xs text-blue-400 mt-0.5 pl-4">「{watering.note}」</p>
-        )}
+      <div className="flex items-center justify-end gap-1.5">
+        <TodoMark size={sz} title="まだ" />
+        <span className={`${text} font-bold`}>まだ</span>
       </div>
     )
   }
   return (
-    <div className="flex items-center gap-1">
-      <XCircle size={sz} className="text-terra-400" />
-      <span className={`${compact ? 'text-xs' : 'text-sm'} text-terra-500`}>未</span>
+    <div className="flex items-center justify-end gap-1.5">
+      <MissMark size={sz} title="記録なし" />
+      <span className={`${text} text-terra-700 font-bold`}>記録なし</span>
     </div>
   )
 }
@@ -117,7 +114,13 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
   }, [hasMore, loadingMore, onLoadMore])
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-soil-100 overflow-hidden">
+    <div className="hand-card overflow-hidden">
+      {/* 凡例 */}
+      <div className="px-4 py-2.5 border-b-2 border-ink bg-paper flex items-center gap-4 flex-wrap text-xs font-bold">
+        <span className="flex items-center gap-1"><DoneMark size={16} /> 水やり済み</span>
+        <span className="flex items-center gap-1"><RainCloudIcon size={18} /> 雨</span>
+        <span className="flex items-center gap-1"><MissMark size={16} /> 記録なし</span>
+      </div>
       <ul>
         {dates.map(date => {
           const isToday  = date === todayStr
@@ -132,17 +135,20 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
             const eveningNames = shift?.evening_names ?? []
 
             return (
-              <li key={date} className="border-b border-soil-100 last:border-0 px-4 py-2">
+              <li key={date} className="border-b border-ink/10 last:border-0 px-4 py-2 bg-paper/60">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm text-soil-400 shrink-0 w-28">{formatDate(date)}</span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-bold text-soil-500 border border-soil-300 rounded-full px-1.5 leading-4">予定</span>
+                    <span className="text-sm text-soil-500">{formatDate(date)}</span>
+                  </span>
                   {dual ? (
                     <div className="space-y-0.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-xs text-soil-400">☀️</span>
+                        <SunIcon size={16} title="朝" />
                         <Names names={morningNames} />
                       </div>
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-xs text-soil-400">🌙</span>
+                        <MoonIcon size={16} title="夜" />
                         <Names names={eveningNames} />
                       </div>
                     </div>
@@ -163,17 +169,17 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
             <li
               key={date}
               ref={isToday ? todayRef : undefined}
-              className={`border-b border-soil-100 last:border-0 px-4 ${isToday ? 'bg-leaf-50 py-3' : 'py-2'}`}
+              className={`border-b border-ink/10 last:border-0 px-4 ${isToday ? 'bg-sun/30 py-3 border-y-2 border-y-ink' : 'py-2.5'}`}
             >
               <div className="flex items-start justify-between gap-2">
                 {/* 日付ラベル */}
                 <div className="flex items-center gap-2 shrink-0">
                   {isToday && (
-                    <span className="bg-leaf-500 text-white text-xs font-bold px-2 py-0.5 rounded-full leading-none">
+                    <span className="bg-sun border-2 border-ink text-xs font-black px-2 py-0.5 rounded-full leading-none">
                       今日
                     </span>
                   )}
-                  <span className={`text-sm ${isToday ? 'font-bold text-soil-800' : 'text-soil-600'}`}>
+                  <span className={`text-sm ${isToday ? 'font-black' : 'font-bold'}`}>
                     {formatDate(date)}
                   </span>
                 </div>
@@ -182,16 +188,16 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
                 {dual ? (
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-soil-400 w-5">朝</span>
-                      <StatusBadge watering={morning} compact />
+                      <SunIcon size={16} title="朝" />
+                      <StatusBadge watering={morning} compact pending={isToday} />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-soil-400 w-5">夜</span>
-                      <StatusBadge watering={evening} compact />
+                      <MoonIcon size={16} title="夜" />
+                      <StatusBadge watering={evening} compact pending={isToday} />
                     </div>
                   </div>
                 ) : (
-                  <StatusBadge watering={morning} />
+                  <StatusBadge watering={morning} pending={isToday} />
                 )}
               </div>
             </li>
@@ -199,31 +205,18 @@ export function WateringHistory({ history, shifts, pastDays, hasMore, loadingMor
         })}
 
         {/* 読み込みトリガー / 終端表示 */}
-        <li ref={sentinelRef} className="px-4 py-3 text-center border-t border-soil-100">
+        <li ref={sentinelRef} className="px-4 py-3 text-center border-t border-ink/10">
           {loadingMore ? (
             <span className="inline-flex items-center gap-1.5 text-xs text-soil-400">
               <Loader2 size={14} className="animate-spin" />
               過去の記録を読み込み中...
             </span>
           ) : !hasMore ? (
-            <span className="text-xs text-soil-300">これより前の記録はありません</span>
+            <span className="text-xs text-soil-500">これより前の記録はありません</span>
           ) : null}
         </li>
       </ul>
 
-      {/* 凡例 */}
-      <div className="px-4 py-3 border-t border-soil-100 flex items-center gap-4">
-        <span className="text-xs text-soil-400">実績:</span>
-        <span className="flex items-center gap-1 text-xs text-soil-400">
-          <CheckCircle size={12} className="text-leaf-500" /> 済
-        </span>
-        <span className="flex items-center gap-1 text-xs text-soil-400">
-          <CloudRain size={12} className="text-blue-400" /> 雨
-        </span>
-        <span className="flex items-center gap-1 text-xs text-soil-400">
-          <XCircle size={12} className="text-terra-400" /> 未
-        </span>
-      </div>
     </div>
   )
 }

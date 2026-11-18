@@ -151,7 +151,7 @@ export function WeeklyShiftEditor({ shifts, onSave, onDelete }: Props) {
             <div className="flex items-center justify-between mb-3">
               <span className="font-bold text-sm text-soil-700">
                 {formatDate(dateStr)}
-                {isSaved && <span className="ml-2 text-xs text-leaf-600 font-normal">✔ 保存済み</span>}
+                {isSaved && <span className="ml-2 text-xs text-leaf-600 font-normal">保存済み</span>}
               </span>
               {existing && !isDirty && (
                 <button

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  ArrowLeft, ChevronLeft, ChevronRight, Droplets, CloudRain, CircleAlert,
-  Trophy, Feather, Heart, MessageCircle, Camera, Send, Check, Loader2,
+  ArrowLeft, ChevronLeft, ChevronRight,
+  Feather, Heart, MessageCircle, Camera, Send, Check, Loader2,
 } from 'lucide-react'
+import { LogoSprout, Medal, WateringCanIcon, DoneMark, MissMark, RainCloudIcon } from '../components/illust/Illust'
 import {
   fetchWaterings, fetchShifts, fetchPosts, fetchReactions, fetchReplies,
   fetchVegetables, insertPost, getVegetableImageUrl,
@@ -64,11 +65,11 @@ export function SummaryPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <header className="bg-soil-900 text-white px-4 lg:px-6 py-3 flex items-center justify-between">
-        <Link to="/?tab=history" className="flex items-center gap-2 text-soil-200 hover:text-white text-sm">
-          <ArrowLeft size={18} /> 戻る
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-6 py-2.5 flex items-center justify-between">
+        <Link to="/?tab=history" className="flex items-center gap-1.5 text-sm font-bold bg-white border-2 border-ink rounded-full px-3 py-1">
+          <ArrowLeft size={16} /> 戻る
         </Link>
-        <h1 className="font-bold text-lg">🌱 月のまとめ</h1>
+        <h1 className="font-black text-lg flex items-center gap-1.5"><LogoSprout size={30} />月のまとめ</h1>
         <span className="w-12" />
       </header>
 
@@ -112,7 +113,7 @@ function SummaryBody({ s }: { s: MonthlySummary }) {
     <>
       <RateCard s={s} />
 
-      <Card icon={<Trophy size={18} className="text-yellow-500" />} title="水やり記録ランキング">
+      <Card icon={<Medal place={0} size={24} />} title="水やり記録ランキング">
         {s.ranking.length === 0 ? (
           <Empty>この月の記録はありません</Empty>
         ) : (
@@ -132,8 +133,8 @@ function SummaryBody({ s }: { s: MonthlySummary }) {
           <div className="flex flex-col gap-3">
             <div className="text-sm font-bold text-soil-600">人気の投稿</div>
             {s.popular.map((p, i) => (
-              <div key={p.post.id} className="flex gap-3 bg-cream rounded-xl p-3">
-                <div className="text-xl w-7 text-center">{['🥇', '🥈', '🥉'][i]}</div>
+              <div key={p.post.id} className="flex gap-3 bg-paper border-2 border-ink/15 rounded-xl p-3">
+                <Medal place={i} size={30} className="shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-soil-800">{p.post.by_name}</div>
                   {p.post.body && <p className="text-sm text-soil-700 whitespace-pre-wrap line-clamp-3">{p.post.body}</p>}
@@ -177,7 +178,7 @@ function RateCard({ s }: { s: MonthlySummary }) {
   const c = 2 * Math.PI * r
   const color = s.rate >= 90 ? '#4f7a2e' : s.rate >= 70 ? '#6fa83c' : s.rate >= 50 ? '#e0a030' : '#c96a3f'
   return (
-    <Card icon={<Droplets size={18} className="text-blue-500" />} title="水やり達成率">
+    <Card icon={<WateringCanIcon size={24} />} title="水やり達成率">
       <div className="flex items-center gap-6">
         <div className="relative w-36 h-36 shrink-0">
           <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
@@ -193,9 +194,9 @@ function RateCard({ s }: { s: MonthlySummary }) {
           </div>
         </div>
         <div className="flex-1 flex flex-col gap-2">
-          <Row icon={<Droplets size={16} className="text-blue-500" />} label="水やり" value={s.watered} />
-          <Row icon={<CloudRain size={16} className="text-sky-500" />} label="雨" value={s.rain} />
-          <Row icon={<CircleAlert size={16} className="text-terra-500" />} label="未記録" value={s.missed} />
+          <Row icon={<DoneMark size={20} />} label="水やり" value={s.watered} />
+          <Row icon={<RainCloudIcon size={22} />} label="雨" value={s.rain} />
+          <Row icon={<MissMark size={20} />} label="記録なし" value={s.missed} />
         </div>
       </div>
       <p className="text-xs text-soil-400 mt-3">
@@ -246,7 +247,7 @@ function PostComposer({ s }: { s: MonthlySummary }) {
             <button
               onClick={send}
               disabled={!userName || !text.trim() || state === 'sending'}
-              className="flex items-center gap-2 bg-leaf-600 hover:bg-leaf-700 disabled:opacity-50 text-white font-bold rounded-full px-6 py-3"
+              className="hand-btn flex items-center gap-2 bg-grass disabled:opacity-50 font-black px-6 py-3"
             >
               {state === 'sending' ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
               W に投稿する
@@ -263,8 +264,8 @@ function PostComposer({ s }: { s: MonthlySummary }) {
 
 function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white rounded-2xl shadow-sm p-5">
-      <h2 className="flex items-center gap-2 font-bold text-soil-800 mb-4">{icon}{title}</h2>
+    <section className="hand-card p-5">
+      <h2 className="flex items-center gap-2 font-black text-lg mb-4">{icon}{title}</h2>
       {children}
     </section>
   )
@@ -280,7 +281,7 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
 
 function MiniStat({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="bg-cream rounded-xl py-3 text-center">
+    <div className="bg-paper border-2 border-ink/15 rounded-xl py-3 text-center">
       <div className="text-2xl font-extrabold text-leaf-700 tabular-nums">{value}<span className="text-sm">{unit}</span></div>
       <div className="text-xs text-soil-500">{label}</div>
     </div>
@@ -296,10 +297,10 @@ function RankList({ entries, unit }: { entries: { name: string; count: number }[
         const place = places[i]
         return (
           <li key={e.name} className="flex items-center gap-3">
-            <span className="w-7 text-center font-bold text-soil-500">{['🥇', '🥈', '🥉'][place] ?? place + 1}</span>
+            <Medal place={place} size={26} className="shrink-0" />
             <span className="w-20 truncate text-soil-800">{e.name}</span>
-            <div className="flex-1 h-3 bg-soil-100 rounded-full overflow-hidden">
-              <div className="h-full bg-leaf-500 rounded-full" style={{ width: `${(e.count / max) * 100}%` }} />
+            <div className="flex-1 h-3.5 bg-paper border-2 border-ink/20 rounded-full overflow-hidden">
+              <div className="h-full bg-grass border-r-2 border-ink rounded-full" style={{ width: `${(e.count / max) * 100}%` }} />
             </div>
             <span className="w-12 text-right font-bold tabular-nums">{e.count}{unit}</span>
           </li>
