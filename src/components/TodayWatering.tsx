@@ -7,6 +7,7 @@ import {
   GardenScene, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, UmbrellaIcon, type SceneState,
 } from './illust/Illust'
 import { SlotChip } from './SlotChip'
+import { STATE_TONE } from './stateTone'
 import { isPendingRecord } from '../lib/outbox'
 
 interface Props {
@@ -23,13 +24,6 @@ interface Props {
 function shiftNames(shift: Shift | null, slot: 'morning' | 'evening'): string {
   const names = shift ? (slot === 'morning' ? shift.morning_names : shift.evening_names) : []
   return names.length > 0 ? names.join('・') : '担当なし'
-}
-
-/** 状態ごとの色（カード下半分の地色・バッジ・バッジの文言） */
-const STATE_TONE: Record<SceneState, { bg: string; badge: string; label: string }> = {
-  done: { bg: '#E0F2CC', badge: '#A8DB7A', label: '済み' },
-  todo: { bg: '#FFE1CC', badge: '#F4895F', label: 'まだ' },
-  rain: { bg: '#DCEEFA', badge: '#5AA9E6', label: '雨' },
 }
 
 /** 野菜なぞりゲーム（今日「水やりした」人だけ遊べる） */

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { GardenScene, LogoSprout, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, type SceneState } from '../components/illust/Illust'
+import { GardenScene, LogoSprout, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, UmbrellaIcon, type SceneState } from '../components/illust/Illust'
+import { STATE_TONE } from '../components/stateTone'
 import { fetchWaterings, fetchShifts, upsertWatering, deleteWateringByDateSlot } from '../lib/db'
 import { formatDate, formatTime, effectiveNow } from '../lib/utils'
 import { isDualSlotDate, type Slot } from '../lib/wateringRule'
@@ -162,12 +163,25 @@ export function DisplayPage() {
           <div className="border-b-2 border-ink shrink-0">
             <GardenScene state={scene} night={night} className="w-full h-[clamp(6rem,24dvh,14rem)]" />
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:px-8 sm:py-6 gap-3 sm:gap-5">
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:px-8 sm:py-6 gap-3 sm:gap-5"
+            style={{ backgroundColor: STATE_TONE[scene].bg }}
+          >
           <div className="text-center">
-            <p className="text-base sm:text-2xl text-soil-500 font-bold flex items-center justify-center gap-2">
+            <p className="text-base sm:text-2xl text-ink/70 font-bold flex items-center justify-center gap-2">
               {night ? <MoonIcon size={32} className="w-6 h-6 sm:w-8 sm:h-8" /> : <SunIcon size={32} className="w-6 h-6 sm:w-8 sm:h-8" />} {label}
+              {/* 状態のバッジ（済み＝緑、まだ＝オレンジ、雨＝青） */}
+              <span
+                className="ml-1 rounded-full border-2 border-ink px-3 py-1 text-xs sm:text-base font-black leading-none text-ink"
+                style={{ backgroundColor: STATE_TONE[scene].badge }}
+              >
+                {STATE_TONE[scene].label}
+              </span>
             </p>
-            <p className="text-[1.75rem] sm:text-5xl font-black mt-1 sm:mt-2 leading-tight">{headline}</p>
+            <p className="text-[1.75rem] sm:text-5xl font-black mt-1 sm:mt-2 leading-tight flex items-center justify-center gap-2">
+              {status === 'rain' && <UmbrellaIcon size={40} className="w-8 h-8 sm:w-12 sm:h-12 shrink-0" />}
+              {headline}
+            </p>
           </div>
 
           {/* 記録済み：誰が何時に対応したか */}
@@ -188,7 +202,7 @@ export function DisplayPage() {
           {/* 未対応：担当表示 + 操作ボタン */}
           {status === null && (
             <>
-              <p className="text-lg sm:text-2xl text-soil-500">
+              <p className="text-lg sm:text-2xl text-ink/70">
                 今日の担当<span className="font-black text-ink ml-3">{recorderName}</span>
               </p>
               <div className="w-full grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-4 sm:mt-2">
@@ -217,7 +231,7 @@ export function DisplayPage() {
                 <div className="text-center">
                   <button
                     onClick={() => setShowUndo(true)}
-                    className="text-base text-soil-500 underline underline-offset-4 py-3 px-4"
+                    className="text-base font-bold text-ink/70 underline underline-offset-4 py-3 px-4"
                   >
                     記録を取り消す
                   </button>
