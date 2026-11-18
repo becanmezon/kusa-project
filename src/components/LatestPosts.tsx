@@ -1,6 +1,7 @@
 import { ChevronRight, MessageCircle } from 'lucide-react'
 import { ReactionIcon } from './illust/Illust'
-import { timeLabel } from './PostTimeline'
+import { timeLabel } from '../lib/timeLabel'
+import { LazyImage } from './LazyImage'
 import type { Post, Reaction, Reply } from '../types'
 
 interface Props {
@@ -53,10 +54,9 @@ export function LatestPosts({ posts, reactions, replies, getImageUrl, onOpenAll 
           {images.length > 0 && (
             <div className={`grid gap-1 rounded-xl overflow-hidden mb-4 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {images.slice(0, 4).map(path => (
-                <img
+                <LazyImage
                   key={path}
                   src={getImageUrl(path)}
-                  alt=""
                   className={`w-full object-cover ${images.length === 1 ? 'max-h-80' : 'aspect-square'}`}
                 />
               ))}

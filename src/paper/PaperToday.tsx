@@ -5,6 +5,7 @@ import type { Watering, Shift } from '../types'
 import { today, tomorrow, formatDate, formatTime } from '../lib/utils'
 import { isDualSlotDate } from '../lib/wateringRule'
 import { SproutSketch, type PaperWeather } from './HandDrawn'
+import { isPendingRecord } from '../lib/outbox'
 
 type Slot = 'morning' | 'evening'
 
@@ -86,6 +87,9 @@ function SlotSection({ userName, slot, watering, todayShift, showSlotName, onWat
             <span className="p-sub">{status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}</span>
           </p>
           {watering.note && <p className="mt-1 text-base lg:text-lg p-sub">「{watering.note}」</p>}
+          {isPendingRecord(watering) && (
+            <p className="mt-1 text-sm font-bold p-sub">まだ送信されていません（つながったら自動で送信します）</p>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             {!confirmUndo ? (

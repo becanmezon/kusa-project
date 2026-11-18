@@ -1,6 +1,7 @@
 // 紙の版：PCの今日画面の下に出す、Wのいちばん新しい投稿（罫線で区切った記事のように）
 import type { Post, Reaction, Reply } from '../types'
-import { timeLabel } from '../components/PostTimeline'
+import { timeLabel } from '../lib/timeLabel'
+import { LazyImage } from '../components/LazyImage'
 import { getVegetableImageUrl } from '../lib/db'
 import { ReactionIcon } from '../components/illust/Illust'
 
@@ -41,7 +42,7 @@ export function PaperLatestPost({ posts, reactions, replies, onOpenAll }: {
           {images.length > 0 && (
             <div className={`grid gap-1 mb-4 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {images.slice(0, 4).map(path => (
-                <img
+                <LazyImage
                   key={path}
                   src={getVegetableImageUrl(path)}
                   alt=""

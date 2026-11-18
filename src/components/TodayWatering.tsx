@@ -7,6 +7,7 @@ import {
   GardenScene, SunIcon, MoonIcon, WateringCanIcon, RainCloudIcon, UmbrellaIcon, type SceneState,
 } from './illust/Illust'
 import { SlotChip } from './SlotChip'
+import { isPendingRecord } from '../lib/outbox'
 
 interface Props {
   userName: string
@@ -151,6 +152,9 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
               <span className="text-ink/70">{status === 'watered' ? ' に水やりしました' : ' に雨と記録しました'}</span>
             </p>
             {watering.note && <p className="text-ink/70 mt-1 text-sm lg:text-lg">「{watering.note}」</p>}
+            {isPendingRecord(watering) && (
+              <p className="mt-1 text-sm font-bold text-ink/70">まだ送信されていません（つながったら自動で送信します）</p>
+            )}
           </div>
         )}
 

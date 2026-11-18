@@ -1,22 +1,33 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { LogoSprout, WateringCanIcon } from '../components/illust/Illust'
 import { Droplets, History, Loader2, Feather, RefreshCw, Gamepad2 } from 'lucide-react'
 import { NameModal } from '../components/NameModal'
 import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
-import { PostTimeline } from '../components/PostTimeline'
 import { LatestPosts } from '../components/LatestPosts'
-import { PaperShell } from '../paper/PaperShell'
-import { PaperToday } from '../paper/PaperToday'
-import { PaperHistory } from '../paper/PaperHistory'
-import { PaperLatestPost } from '../paper/PaperLatestPost'
+
+// W（投稿一覧）と紙の当番表デザインは、開いたときに初めて読み込む（最初の表示を軽くする）
+const PostTimeline    = lazy(() => import('../components/PostTimeline').then(m => ({ default: m.PostTimeline })))
+const PaperShell      = lazy(() => import('../paper/PaperShell').then(m => ({ default: m.PaperShell })))
+const PaperToday      = lazy(() => import('../paper/PaperToday').then(m => ({ default: m.PaperToday })))
+const PaperHistory    = lazy(() => import('../paper/PaperHistory').then(m => ({ default: m.PaperHistory })))
+const PaperLatestPost = lazy(() => import('../paper/PaperLatestPost').then(m => ({ default: m.PaperLatestPost })))
+
+function TabLoading() {
+  return (
+    <div className="flex justify-center py-16 text-soil-500 text-sm" role="status">
+      <Loader2 className="animate-spin mr-2" size={18} /> 読み込み中…
+    </div>
+  )
+}
 import { getSavedName, today, tomorrow, isTestMode } from '../lib/utils'
-import { supabase } from '../lib/supabase'
+import { getSupabase } from '../lib/supabase'
+import { listOutbox, queueOp, flushOutbox, requestBackgroundSync, applyPendingOps, type OutboxOp } from '../lib/outbox'
 import { requestShiftSync } from '../lib/shiftSync'
 import { useIsDesktop } from '../lib/useMediaQuery'
 import {
-  fetchWaterings, upsertWatering, deleteWateringByDateSlot,
+  fetchWaterings,
   fetchShifts,
   getVegetableImageUrl,
   buildWateringHistory,
@@ -121,6 +132,11 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
   }
 
   const [waterings,  setWaterings]  = useState<Watering[]>([])
+  // オフライン中に押して、まだ送れていない水やり記録
+  const [pendingOps, setPendingOps] = useState<OutboxOp[]>([])
+  const [online,     setOnline]     = useState(() => typeof navigator === 'undefined' || navigator.onLine)
+  const [syncMsg,    setSyncMsg]    = useState<string | null>(null)
+  const viewWaterings = applyPendingOps(waterings, pendingOps)
   const [shifts,     setShifts]     = useState<Shift[]>([])
   const [posts,      setPosts]      = useState<Post[]>([])
   const [reactions,  setReactions]  = useState<Reaction[]>([])
@@ -136,30 +152,32 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
 
   const todayStr    = today()
   const tomorrowStr = tomorrow()
-  const todayMorningWatering = waterings.find(w => w.date === todayStr && w.slot === 'morning') ?? null
-  const todayEveningWatering = waterings.find(w => w.date === todayStr && w.slot === 'evening') ?? null
+  const todayMorningWatering = viewWaterings.find(w => w.date === todayStr && w.slot === 'morning') ?? null
+  const todayEveningWatering = viewWaterings.find(w => w.date === todayStr && w.slot === 'evening') ?? null
   const todayShift    = shifts.find(s => s.date === todayStr) ?? null
   const tomorrowShift = shifts.find(s => s.date === tomorrowStr) ?? null
 
   // ── 初回データ取得 ──────────────────────────────────────────
   const loadAll = useCallback(async () => {
     setLoading(true); setError(null)
+    // W の投稿・リアクション・返信は「今日」の表示を待たせないよう、裏で並行して読み込む
+    const postsPromise = Promise.all([fetchPosts(), fetchReactions(), fetchReplies()])
+      .then(([p, r, rep]) => { setPosts(p); setReactions(r); setReplies(rep) })
+      .catch(e => console.error(e))
     try {
-      const [w, s, p, r, rep] = await Promise.all([
+      // 「今日」に必要な水やり記録とシフトだけを待つ
+      const [w, s] = await Promise.all([
         fetchWaterings(daysAgo(todayStr, 14), todayStr),
         fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)),
-        fetchPosts(),
-        fetchReactions(),
-        fetchReplies(),
       ])
       setWaterings(w); setShifts(s)
-      setPosts(p); setReactions(r); setReplies(rep)
     } catch (e) {
       console.error(e)
       setError('データの取得に失敗しました。再読み込みしてください。')
     } finally {
       setLoading(false)
     }
+    await postsPromise
   }, [todayStr])
 
   useEffect(() => { if (userName) loadAll() }, [userName, loadAll])
@@ -211,45 +229,107 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
     }
   }, [historyPastDays, loadingMoreHistory, todayStr])
 
-  // ── Realtime 購読 ────────────────────────────────────────────
+  // ── Realtime 購読（supabase-js は最初の表示のあとで読み込む） ─────────
   useEffect(() => {
     if (!userName) return
-    const ch = supabase
-      .channel('kusa-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
-        fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr).then(setWaterings).catch(console.error)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
-        fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)).then(setShifts).catch(console.error)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        fetchPosts().then(setPosts).catch(console.error)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, () => {
-        fetchReactions().then(setReactions).catch(console.error)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'replies' }, () => {
-        fetchReplies().then(setReplies).catch(console.error)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
+    let cancelled = false
+    let cleanup: (() => void) | null = null
+    getSupabase().then(supabase => {
+      if (cancelled) return
+      const ch = supabase
+        .channel('kusa-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'waterings' }, () => {
+          fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr).then(setWaterings).catch(console.error)
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, () => {
+          fetchShifts(daysAgo(todayStr, 14), daysAgo(todayStr, -7)).then(setShifts).catch(console.error)
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+          fetchPosts().then(setPosts).catch(console.error)
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, () => {
+          fetchReactions().then(setReactions).catch(console.error)
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'replies' }, () => {
+          fetchReplies().then(setReplies).catch(console.error)
+        })
+        .subscribe()
+      cleanup = () => { supabase.removeChannel(ch) }
+    }).catch(console.error)
+    return () => { cancelled = true; cleanup?.() }
   }, [userName, todayStr])
 
   // ── 水やりハンドラ ──────────────────────────────────────────
-  const handleWater = async (note: string, slot: 'morning' | 'evening') => {
-    const saved = await upsertWatering(todayStr, userName!, note || null, 'watered', slot)
-    setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
+  // 記録はいったん端末の「送信待ちリスト」に入れてから送る（1本の道にして、オフラインでも同じ動きにする）。
+  // 送れたらサーバーの最新を取り直し、送れなければ端末に残して、つながったときに自動で送る。
+  const showSyncMsg = (msg: string) => {
+    setSyncMsg(msg)
+    setTimeout(() => setSyncMsg(m => (m === msg ? null : m)), 6000)
   }
 
-  const handleRain = async (note: string, slot: 'morning' | 'evening') => {
-    const saved = await upsertWatering(todayStr, userName!, note || null, 'rain', slot)
-    setWaterings(prev => [...prev.filter(w => !(w.date === todayStr && w.slot === slot)), saved])
+  const refreshPending = useCallback(async () => {
+    try { setPendingOps(await listOutbox()) } catch (e) { console.error(e) }
+  }, [])
+
+  const reloadWaterings = useCallback(async () => {
+    try {
+      setWaterings(await fetchWaterings(daysAgo(todayStr, historyPastDaysRef.current), todayStr))
+    } catch (e) { console.error(e) }
+  }, [todayStr])
+
+  /** 送信待ちを送る。送れたものがあれば最新を取り直す */
+  const syncOutbox = useCallback(async (quiet = true) => {
+    const before = await listOutbox().catch(() => [] as OutboxOp[])
+    if (before.length === 0) { setPendingOps([]); return null }
+    const result = await flushOutbox().catch(e => { console.error(e); return null })
+    await refreshPending()
+    if (result && (result.sent > 0 || result.dropped > 0)) await reloadWaterings()
+    if (result?.dropped) showSyncMsg('送信できなかった記録がありました。もう一度記録してください')
+    else if (!quiet && result && result.sent > 0 && result.remaining === 0) showSyncMsg(`保存していた記録を${result.sent}件送信しました`)
+    return result
+  }, [refreshPending, reloadWaterings])
+
+  const recordToday = async (op: Omit<OutboxOp, 'key' | 'id' | 'queuedAt'>) => {
+    await queueOp(op)
+    await refreshPending() // すぐ画面に反映（送信待ちの記録として表示）
+    const result = await syncOutbox()
+    if (!result || result.remaining > 0) {
+      requestBackgroundSync()
+      showSyncMsg('電波がないため、この端末に保存しました。つながったら自動で送信します')
+    }
   }
 
-  const handleUndo = async (slot: 'morning' | 'evening') => {
-    await deleteWateringByDateSlot(todayStr, slot)
-    setWaterings(prev => prev.filter(w => !(w.date === todayStr && w.slot === slot)))
-  }
+  const handleWater = (note: string, slot: 'morning' | 'evening') =>
+    recordToday({ type: 'upsert', date: todayStr, slot, by_name: userName!, note: note || null, status: 'watered' })
+
+  const handleRain = (note: string, slot: 'morning' | 'evening') =>
+    recordToday({ type: 'upsert', date: todayStr, slot, by_name: userName!, note: note || null, status: 'rain' })
+
+  const handleUndo = (slot: 'morning' | 'evening') =>
+    recordToday({ type: 'delete', date: todayStr, slot })
+
+  // つながったとき・画面に戻ってきたとき・Service Worker が送り終えたときに、送信待ちを片づける
+  useEffect(() => {
+    if (!userName) return
+    const first = setTimeout(() => syncOutbox(false), 0) // 起動時：前回送れなかった記録があれば送る
+    const onOnline = () => { setOnline(true); syncOutbox(false) }
+    const onOffline = () => setOnline(false)
+    const onVisible = () => { if (document.visibilityState === 'visible') syncOutbox(false) }
+    const onSwMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'kusa-outbox-flushed') { refreshPending(); reloadWaterings() }
+    }
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    document.addEventListener('visibilitychange', onVisible)
+    navigator.serviceWorker?.addEventListener('message', onSwMessage)
+    return () => {
+      clearTimeout(first)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+      document.removeEventListener('visibilitychange', onVisible)
+      navigator.serviceWorker?.removeEventListener('message', onSwMessage)
+    }
+  }, [userName, syncOutbox, refreshPending, reloadWaterings])
 
   // ── W（つぶやき）ハンドラ ───────────────────────────────────
   const handlePost = async (body: string, imageFiles: File[]) => {
@@ -351,10 +431,21 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
     )
   }
 
+  const offlineBanner = (!online || pendingOps.length > 0 || syncMsg) ? (
+    <div
+      className="fixed left-1/2 -translate-x-1/2 bottom-24 lg:bottom-6 z-50 w-[calc(100%-2rem)] max-w-md text-sm font-bold px-4 py-2.5 text-center bg-white border-2 border-ink rounded-xl"
+      role="status"
+    >
+      {syncMsg ?? (!online
+        ? `オフラインです。前回の内容を表示しています${pendingOps.length > 0 ? `（未送信の記録 ${pendingOps.length}件）` : ''}`
+        : `未送信の記録が${pendingOps.length}件あります。送信しています…`)}
+    </div>
+  ) : null
+
   // ── 紙の当番表デザイン ─────────────────────────────────────
   if (variant === 'paper') {
     const historyProps = {
-      history: buildWateringHistory(waterings, historyPastDays + 1),
+      history: buildWateringHistory(viewWaterings, historyPastDays + 1),
       shifts,
       pastDays: historyPastDays,
       hasMore: historyPastDays < HISTORY_MAX_PAST_DAYS,
@@ -362,6 +453,9 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
       onLoadMore: loadMoreHistory,
     }
     return (
+      <>
+      {offlineBanner}
+      <Suspense fallback={<TabLoading />}>
       <PaperShell
         tab={tab}
         userName={userName}
@@ -407,6 +501,8 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
           />
         }
       />
+      </Suspense>
+      </>
     )
   }
 
@@ -474,6 +570,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
         </button>
         </div>
       </header>
+      {offlineBanner}
       {refreshMsg && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 bg-white border-2 border-ink text-sm font-bold px-4 py-2 rounded-full">
           {refreshMsg}
@@ -513,7 +610,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
             <div className="h-[calc(100vh-7rem)]">
               <WateringHistory
                 fill
-                history={buildWateringHistory(waterings, historyPastDays + 1)}
+                history={buildWateringHistory(viewWaterings, historyPastDays + 1)}
                 shifts={shifts}
                 pastDays={historyPastDays}
                 hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
@@ -536,7 +633,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
             <span className="text-sm text-soil-400 truncate ml-3"><span className="hidden sm:inline">達成率・ランキング・人気の投稿 </span>›</span>
           </Link>
           <WateringHistory
-            history={buildWateringHistory(waterings, historyPastDays + 1)}
+            history={buildWateringHistory(viewWaterings, historyPastDays + 1)}
             shifts={shifts}
             pastDays={historyPastDays}
             hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
@@ -547,6 +644,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
         )}
         {tab === 'whisper' && (
           <div className="lg:max-w-2xl lg:mx-auto">
+          <Suspense fallback={<TabLoading />}>
           <PostTimeline
             userName={userName}
             posts={posts}
@@ -560,6 +658,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
             onDeleteReply={handleDeleteReply}
             getImageUrl={getVegetableImageUrl}
           />
+          </Suspense>
           </div>
         )}
       </main>

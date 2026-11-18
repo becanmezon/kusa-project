@@ -1,4 +1,5 @@
-import { supabase } from './supabase'
+import { getSupabase } from './supabase'
+import { restSelect, restUpsert, restDelete, publicStorageUrl } from './rest'
 import { resizeImage, today } from './utils'
 import type { Watering, Shift, Vegetable, Post, Reaction, Reply } from '../types'
 
@@ -6,14 +7,7 @@ import type { Watering, Shift, Vegetable, Post, Reaction, Reply } from '../types
 
 /** 指定期間の水やりレコードを取得 */
 export async function fetchWaterings(fromDate: string, toDate: string): Promise<Watering[]> {
-  const { data, error } = await supabase
-    .from('waterings')
-    .select('*')
-    .gte('date', fromDate)
-    .lte('date', toDate)
-    .order('date', { ascending: false })
-  if (error) throw error
-  return data ?? []
+  return restSelect<Watering>('waterings', [['date', `gte.${fromDate}`], ['date', `lte.${toDate}`], ['order', 'date.desc']])
 }
 
 /** 水やりを登録（date + slot がユニークなので upsert で上書き可） */
@@ -24,13 +18,7 @@ export async function upsertWatering(
   status: 'watered' | 'rain' = 'watered',
   slot: 'morning' | 'evening' = 'morning',
 ): Promise<Watering> {
-  const { data, error } = await supabase
-    .from('waterings')
-    .upsert({ date, slot, by_name, note, status }, { onConflict: 'date,slot' })
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  return restUpsert<Watering>('waterings', { date, slot, by_name, note, status }, 'date,slot')
 }
 
 /** 指定した日付・枠の水やりを取り消し */
@@ -38,24 +26,17 @@ export async function deleteWateringByDateSlot(
   date: string,
   slot: 'morning' | 'evening',
 ): Promise<void> {
-  const { error } = await supabase
-    .from('waterings')
-    .delete()
-    .eq('date', date)
-    .eq('slot', slot)
-  if (error) throw error
+  await restDelete('waterings', { date, slot })
 }
 
 // ─── Shifts ───────────────────────────────────────────────────
 
 /** シフトを取得（期間指定なしで全件） */
 export async function fetchShifts(fromDate?: string, toDate?: string): Promise<Shift[]> {
-  let q = supabase.from('shifts').select('*').order('date')
-  if (fromDate) q = q.gte('date', fromDate)
-  if (toDate)   q = q.lte('date', toDate)
-  const { data, error } = await q
-  if (error) throw error
-  return data ?? []
+  const params: [string, string][] = [['order', 'date.asc']]
+  if (fromDate) params.push(['date', `gte.${fromDate}`])
+  if (toDate)   params.push(['date', `lte.${toDate}`])
+  return restSelect<Shift>('shifts', params)
 }
 
 /** シフトを登録（date がユニークなので upsert で上書き可） */
@@ -64,6 +45,7 @@ export async function upsertShift(
   morning_names: string[],
   evening_names: string[],
 ): Promise<Shift> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('shifts')
     .upsert({ date, morning_names, evening_names }, { onConflict: 'date' })
@@ -75,6 +57,7 @@ export async function upsertShift(
 
 /** シフトを削除 */
 export async function deleteShift(id: string): Promise<void> {
+  const supabase = await getSupabase()
   const { error } = await supabase.from('shifts').delete().eq('id', id)
   if (error) throw error
 }
@@ -83,6 +66,7 @@ export async function deleteShift(id: string): Promise<void> {
 
 /** 野菜写真を全件取得（新着順） */
 export async function fetchVegetables(): Promise<Vegetable[]> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('vegetables')
     .select('*')
@@ -99,6 +83,7 @@ export async function insertVegetable(
   image_path: string,
   day: string,
 ): Promise<Vegetable> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('vegetables')
     .insert({ name, by_name, note, image_path, day })
@@ -110,6 +95,7 @@ export async function insertVegetable(
 
 /** 野菜写真を削除（ストレージの画像も同時に削除） */
 export async function deleteVegetable(id: string, image_path: string): Promise<void> {
+  const supabase = await getSupabase()
   if (image_path) {
     await supabase.storage.from('veg-photos').remove([image_path])
   }
@@ -124,6 +110,7 @@ export async function deleteVegetable(id: string, image_path: string): Promise<v
  * ファイル名: {year}/{timestamp}-{random}.jpg
  */
 export async function uploadVegetableImage(file: File): Promise<string> {
+  const supabase = await getSupabase()
   const blob = await resizeImage(file) // 長辺900px / JPEG 0.8
   const year = new Date().getFullYear()
   const path = `${year}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
@@ -139,18 +126,13 @@ export function getVegetableImageUrl(path: string): string {
   if (!path) return ''
   // すでに http:// で始まるURL（モック用）はそのまま返す
   if (path.startsWith('http')) return path
-  return supabase.storage.from('veg-photos').getPublicUrl(path).data.publicUrl
+  return publicStorageUrl('veg-photos', path)
 }
 
 // ─── Posts ────────────────────────────────────────────────────
 
 export async function fetchPosts(): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data ?? []
+  return restSelect<Post>('posts', [['order', 'created_at.desc']])
 }
 
 export async function insertPost(
@@ -158,6 +140,7 @@ export async function insertPost(
   by_name: string,
   image_paths: string[],
 ): Promise<Post> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('posts')
     .insert({ body, by_name, image_paths })
@@ -168,6 +151,7 @@ export async function insertPost(
 }
 
 export async function updatePostBody(id: string, body: string): Promise<Post> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('posts')
     .update({ body, edited_at: new Date().toISOString() })
@@ -179,6 +163,7 @@ export async function updatePostBody(id: string, body: string): Promise<Post> {
 }
 
 export async function deletePost(id: string, image_paths: string[]): Promise<void> {
+  const supabase = await getSupabase()
   if (image_paths.length > 0) {
     await supabase.storage.from('veg-photos').remove(image_paths)
   }
@@ -187,6 +172,7 @@ export async function deletePost(id: string, image_paths: string[]): Promise<voi
 }
 
 export async function uploadPostImage(file: File): Promise<string> {
+  const supabase = await getSupabase()
   const blob = await resizeImage(file)
   const year = new Date().getFullYear()
   const path = `posts/${year}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
@@ -200,12 +186,11 @@ export async function uploadPostImage(file: File): Promise<string> {
 // ─── Reactions ────────────────────────────────────────────────
 
 export async function fetchReactions(): Promise<Reaction[]> {
-  const { data, error } = await supabase.from('reactions').select('*')
-  if (error) throw error
-  return data ?? []
+  return restSelect<Reaction>('reactions', [])
 }
 
 export async function addReaction(post_id: string, emoji: string, by_name: string): Promise<Reaction> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('reactions')
     .insert({ post_id, emoji, by_name })
@@ -216,6 +201,7 @@ export async function addReaction(post_id: string, emoji: string, by_name: strin
 }
 
 export async function removeReaction(post_id: string, emoji: string, by_name: string): Promise<void> {
+  const supabase = await getSupabase()
   const { error } = await supabase
     .from('reactions')
     .delete()
@@ -228,15 +214,11 @@ export async function removeReaction(post_id: string, emoji: string, by_name: st
 // ─── Replies ──────────────────────────────────────────────────
 
 export async function fetchReplies(): Promise<Reply[]> {
-  const { data, error } = await supabase
-    .from('replies')
-    .select('*')
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return data ?? []
+  return restSelect<Reply>('replies', [['order', 'created_at.asc']])
 }
 
 export async function insertReply(post_id: string, body: string, by_name: string): Promise<Reply> {
+  const supabase = await getSupabase()
   const { data, error } = await supabase
     .from('replies')
     .insert({ post_id, body, by_name })
@@ -247,6 +229,7 @@ export async function insertReply(post_id: string, body: string, by_name: string
 }
 
 export async function deleteReply(id: string): Promise<void> {
+  const supabase = await getSupabase()
   const { error } = await supabase.from('replies').delete().eq('id', id)
   if (error) throw error
 }

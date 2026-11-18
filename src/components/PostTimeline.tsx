@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Feather, Trash2, ImageIcon, X, Plus, MessageCircle, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 import { ReactionIcon } from './illust/Illust'
+import { timeLabel } from '../lib/timeLabel'
+import { LazyImage } from './LazyImage'
 import { REACTION_KEYS, reactionLabel } from './illust/reactionMeta'
 import type { Post, Reaction, Reply } from '../types'
 
@@ -23,18 +25,6 @@ interface Props {
   getImageUrl: (path: string) => string
 }
 
-export function timeLabel(isoStr: string): string {
-  const d = new Date(isoStr)
-  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
-  if (diffMin < 1)  return 'たった今'
-  if (diffMin < 60) return `${diffMin}分前`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24)   return `${diffH}時間前`
-  const m = d.getMonth() + 1
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${m}/${d.getDate()} ${hh}:${mm}`
-}
 
 // ── 画像グリッド（X風レイアウト） ────────────────────────────
 function ImageGrid({ paths, getImageUrl, onExpand }: {
@@ -49,7 +39,7 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
   if (paths.length === 1) {
     return (
       <button className="block w-full mb-3" onClick={() => open(0)}>
-        <img src={urls[0]} className="rounded-xl w-full max-h-72 object-cover" loading="lazy" alt="" />
+        <LazyImage src={urls[0]} className="rounded-xl w-full max-h-72 object-cover" reserve="min-h-48" />
       </button>
     )
   }
@@ -59,7 +49,7 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
       <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
         {urls.map((src, i) => (
           <button key={i} className="aspect-square" onClick={() => open(i)}>
-            <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
+            <LazyImage src={src} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -70,13 +60,13 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
     return (
       <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3 h-48">
         <button className="row-span-2" onClick={() => open(0)}>
-          <img src={urls[0]} className="w-full h-full object-cover" loading="lazy" alt="" />
+          <LazyImage src={urls[0]} className="w-full h-full object-cover" />
         </button>
         <button onClick={() => open(1)}>
-          <img src={urls[1]} className="w-full h-full object-cover" loading="lazy" alt="" />
+          <LazyImage src={urls[1]} className="w-full h-full object-cover" />
         </button>
         <button onClick={() => open(2)}>
-          <img src={urls[2]} className="w-full h-full object-cover" loading="lazy" alt="" />
+          <LazyImage src={urls[2]} className="w-full h-full object-cover" />
         </button>
       </div>
     )
@@ -87,7 +77,7 @@ function ImageGrid({ paths, getImageUrl, onExpand }: {
     <div className="grid grid-cols-2 gap-1 rounded-xl overflow-hidden mb-3">
       {urls.map((src, i) => (
         <button key={i} className="aspect-square" onClick={() => open(i)}>
-          <img src={src} className="w-full h-full object-cover" loading="lazy" alt="" />
+          <LazyImage src={src} className="w-full h-full object-cover" />
         </button>
       ))}
     </div>
@@ -426,6 +416,9 @@ function ReplyForm({ onSubmit }: { onSubmit: (body: string) => Promise<void> }) 
   )
 }
 
+/** W で一度に表示する投稿の数 */
+const POSTS_PAGE = 10
+
 export function PostTimeline({
   userName, posts, reactions, replies,
   onPost, onEdit, onDelete, onReact, onReply, onDeleteReply,
@@ -458,6 +451,20 @@ export function PostTimeline({
   const [posting,        setPosting]        = useState(false)
   const [lightbox, setLightbox] = useState<{ urls: string[], index: number } | null>(null)
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
+
+  // 投稿は10件ずつ表示し、いちばん下まで来たら次の10件を出す（画像を一度に読み込まない）
+  const [visibleCount, setVisibleCount] = useState(POSTS_PAGE)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const hasMorePosts = visibleCount < posts.length
+  useEffect(() => {
+    const el = moreRef.current
+    if (!el || !hasMorePosts) return
+    const ob = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisibleCount(c => c + POSTS_PAGE)
+    }, { rootMargin: '400px 0px' })
+    ob.observe(el)
+    return () => ob.disconnect()
+  }, [hasMorePosts, visibleCount])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const addImages = (files: File[]) => {
@@ -577,7 +584,7 @@ export function PostTimeline({
         </div>
       ) : (
         <ul className="space-y-3">
-          {posts.map(post => {
+          {posts.slice(0, visibleCount).map(post => {
             const isAuthor   = post.by_name === userName
             const postReplies = replies.filter(r => r.post_id === post.id)
             const isExpanded  = expandedPostId === post.id
@@ -712,6 +719,13 @@ export function PostTimeline({
             )
           })}
         </ul>
+      )}
+
+      {/* ここが画面に入ったら、次の10件を表示 */}
+      {hasMorePosts && (
+        <div ref={moreRef} className="py-6 text-center text-xs text-soil-500" role="status">
+          続きを読み込み中…
+        </div>
       )}
 
       {/* ライトボックス */}
