@@ -1,10 +1,6 @@
 // 紙の版：月のまとめ（数字を大きく組み、ランキングは「正」の字で数える）
-import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { MonthlySummary } from '../lib/monthlySummary'
-import { buildSummaryPostText } from '../lib/monthlySummary'
-import { insertPost } from '../lib/db'
-import { getSavedName } from '../lib/utils'
 
 /** 正の字（5本で1文字）。書き順どおりに1本ずつ足す */
 function Tally({ count }: { count: number }) {
@@ -129,10 +125,6 @@ function Body({ s }: { s: MonthlySummary }) {
         </p>
       </section>
 
-      <section className="py-8 border-b p-rule">
-        <SectionTitle>水やり記録ランキング</SectionTitle>
-        {s.ranking.length === 0 ? <p className="p-sub">この月の記録はありません</p> : <TallyTable entries={s.ranking} unit="回" />}
-      </section>
 
       <section className="py-8 border-b p-rule">
         <SectionTitle>W のふりかえり</SectionTitle>
@@ -176,62 +168,7 @@ function Body({ s }: { s: MonthlySummary }) {
         </section>
       )}
 
-      <Composer s={s} />
     </>
   )
 }
 
-function Composer({ s }: { s: MonthlySummary }) {
-  const userName = getSavedName()
-  const initial = useMemo(() => buildSummaryPostText(s), [s])
-  const [text, setText] = useState(initial)
-  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
-
-  const send = async () => {
-    if (!userName || !text.trim()) return
-    if (!confirm(`${userName} さんの名前で W に投稿します。よろしいですか？`)) return
-    setState('sending')
-    try {
-      await insertPost(text.trim(), userName, [])
-      setState('done')
-    } catch (e) {
-      console.error(e)
-      setState('error')
-    }
-  }
-
-  return (
-    <section className="py-8">
-      <SectionTitle>W にまとめを投稿</SectionTitle>
-      <p className="text-sm p-sub mb-2">文章は自由に書き換えてから投稿できます。</p>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        rows={14}
-        disabled={state === 'done'}
-        className="w-full border p-rule rounded-[3px] bg-transparent p-3 text-sm leading-relaxed focus:outline-none focus:border-[var(--p-ink)]"
-      />
-      <div className="flex items-center gap-6 mt-3 flex-wrap">
-        {state === 'done' ? (
-          <>
-            <span className="font-bold" style={{ color: 'var(--p-leaf)' }}>投稿しました</span>
-            <Link to="/paper?tab=w" className="text-sm underline underline-offset-4 p-sub">W を見る</Link>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={send}
-              disabled={!userName || !text.trim() || state === 'sending'}
-              className="p-btn p-btn-primary px-6 py-3 disabled:opacity-50"
-            >
-              {state === 'sending' ? '投稿中…' : 'W に投稿する'}
-            </button>
-            <button onClick={() => setText(initial)} className="text-sm p-sub underline underline-offset-4">元の文章に戻す</button>
-          </>
-        )}
-      </div>
-      {!userName && <p className="text-sm mt-2" style={{ color: 'var(--p-miss)' }}>投稿するには、トップページで名前を登録してください。</p>}
-      {state === 'error' && <p className="text-sm mt-2" style={{ color: 'var(--p-miss)' }}>投稿できませんでした。もう一度お試しください。</p>}
-    </section>
-  )
-}

@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, ChevronLeft, ChevronRight,
-  Feather, Heart, MessageCircle, Camera, Send, Check, Loader2,
+  Feather, Heart, MessageCircle, Camera, Loader2,
 } from 'lucide-react'
 import { LogoSprout, Medal, WateringCanIcon, DoneMark, MissMark, RainCloudIcon } from '../components/illust/Illust'
 import {
   fetchWaterings, fetchShifts, fetchPosts, fetchReactions, fetchReplies,
-  fetchVegetables, insertPost, getVegetableImageUrl,
+  fetchVegetables, getVegetableImageUrl,
 } from '../lib/db'
-import { getSavedName, today } from '../lib/utils'
+import { today } from '../lib/utils'
 import {
-  buildMonthlySummary, buildSummaryPostText, monthRange, rankPlaces, shiftMonth, type MonthlySummary,
+  buildMonthlySummary, monthRange, rankPlaces, shiftMonth, type MonthlySummary,
 } from '../lib/monthlySummary'
 import { PaperSummary } from '../paper/PaperSummary'
 
@@ -130,13 +130,6 @@ function SummaryBody({ s }: { s: MonthlySummary }) {
     <>
       <RateCard s={s} />
 
-      <Card icon={<Medal place={0} size={24} />} title="水やり記録ランキング">
-        {s.ranking.length === 0 ? (
-          <Empty>この月の記録はありません</Empty>
-        ) : (
-          <RankList entries={s.ranking} unit="回" />
-        )}
-      </Card>
 
       <Card icon={<Feather size={18} className="text-leaf-600" />} title="W のふりかえり">
         <div className="grid grid-cols-3 gap-2 mb-4">
@@ -185,7 +178,6 @@ function SummaryBody({ s }: { s: MonthlySummary }) {
         </Card>
       )}
 
-      <PostComposer s={s} />
     </>
   )
 }
@@ -224,60 +216,6 @@ function RateCard({ s }: { s: MonthlySummary }) {
   )
 }
 
-function PostComposer({ s }: { s: MonthlySummary }) {
-  const userName = getSavedName()
-  const initial = useMemo(() => buildSummaryPostText(s), [s])
-  const [text, setText] = useState(initial)
-  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
-
-  const send = async () => {
-    if (!userName || !text.trim()) return
-    if (!confirm(`${userName} さんの名前で W に投稿します。よろしいですか？`)) return
-    setState('sending')
-    try {
-      await insertPost(text.trim(), userName, [])
-      setState('done')
-    } catch (e) {
-      console.error(e)
-      setState('error')
-    }
-  }
-
-  return (
-    <Card icon={<Send size={18} className="text-leaf-600" />} title="W にまとめを投稿">
-      <p className="text-sm text-soil-500 mb-2">文章は自由に書き換えてから投稿できます。</p>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={14}
-        disabled={state === 'done'}
-        className="w-full rounded-xl border border-soil-200 bg-cream p-3 text-sm leading-relaxed focus:outline-none focus:border-leaf-500"
-      />
-      <div className="flex items-center gap-3 mt-3 flex-wrap">
-        {state === 'done' ? (
-          <>
-            <span className="flex items-center gap-1 text-leaf-700 font-bold"><Check size={18} />投稿しました</span>
-            <Link to="/?tab=whisper" className="text-sm underline text-soil-600">W を見る</Link>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={send}
-              disabled={!userName || !text.trim() || state === 'sending'}
-              className="hand-btn flex items-center gap-2 bg-grass disabled:opacity-50 font-black px-6 py-3"
-            >
-              {state === 'sending' ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              W に投稿する
-            </button>
-            <button onClick={() => setText(initial)} className="text-sm text-soil-500 underline">元の文章に戻す</button>
-          </>
-        )}
-      </div>
-      {!userName && <p className="text-sm text-terra-600 mt-2">投稿するには、トップページで名前を登録してください。</p>}
-      {state === 'error' && <p className="text-sm text-terra-600 mt-2">投稿できませんでした。もう一度お試しください。</p>}
-    </Card>
-  )
-}
 
 function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (

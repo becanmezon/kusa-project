@@ -173,12 +173,13 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
   // 芽の葉っぱ（しおれているときは下向き）
   const leaves = (x: number, h: number, flip = false) => {
     const top = 104 - h
+    // 葉：付け根から先へ、ふっくらした2本の曲線で囲む（先端はわずかに丸める）
     const d = happy
-      ? `M${x} ${top + 6} C${x - 12} ${top + 4} ${x - 20} ${top - 6} ${x - 20} ${top - 14} C${x - 9} ${top - 14} ${x - 2} ${top - 6} ${x} ${top + 6} Z`
-      : `M${x} ${top + 4} C${x - 10} ${top + 2} ${x - 18} ${top + 8} ${x - 21} ${top + 16} C${x - 10} ${top + 17} ${x - 3} ${top + 12} ${x} ${top + 4} Z`
+      ? `M${x} ${top + 6} C${x - 14} ${top + 6} ${x - 22} ${top - 2} ${x - 21} ${top - 12} Q${x - 20.5} ${top - 14.5} ${x - 18} ${top - 14} C${x - 8} ${top - 13} ${x - 1} ${top - 5} ${x} ${top + 6} Z`
+      : `M${x} ${top + 4} C${x - 9} ${top} ${x - 19} ${top + 4} ${x - 21} ${top + 14} Q${x - 21.5} ${top + 16.5} ${x - 19} ${top + 16.5} C${x - 9} ${top + 17} ${x - 2} ${top + 12} ${x} ${top + 4} Z`
     const d2 = happy
-      ? `M${x} ${top + 2} C${x + 4} ${top - 8} ${x + 13} ${top - 14} ${x + 22} ${top - 13} C${x + 21} ${top - 4} ${x + 12} ${top + 3} ${x} ${top + 2} Z`
-      : `M${x} ${top + 2} C${x + 8} ${top + 1} ${x + 17} ${top + 6} ${x + 21} ${top + 14} C${x + 11} ${top + 16} ${x + 3} ${top + 10} ${x} ${top + 2} Z`
+      ? `M${x} ${top + 2} C${x + 2} ${top - 8} ${x + 11} ${top - 15} ${x + 20} ${top - 14} Q${x + 22.5} ${top - 13.5} ${x + 22} ${top - 11} C${x + 20} ${top - 2} ${x + 11} ${top + 4} ${x} ${top + 2} Z`
+      : `M${x} ${top + 2} C${x + 9} ${top - 1} ${x + 18} ${top + 4} ${x + 21} ${top + 12} Q${x + 22} ${top + 14.5} ${x + 19.5} ${top + 15} C${x + 10} ${top + 16} ${x + 3} ${top + 10} ${x} ${top + 2} Z`
     return (
       <g key={x}>
         <path d={`M${x} 104 C${x} ${104 - h / 2} ${x + (happy ? 0 : 3)} ${top + 8} ${x} ${top + 3}`} fill="none" strokeWidth={2.4} />
@@ -199,7 +200,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
       <defs>
         <filter id={`g${id}`} x="-2%" y="-2%" width="104%" height="104%">
           <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" />
-          <feDisplacementMap in="SourceGraphic" scale="2" />
+          <feDisplacementMap in="SourceGraphic" scale="1.2" />
         </filter>
       </defs>
       <g filter={`url(#g${id})`} stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -257,6 +258,9 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         <path d="M70 100 H290 L284 136 C283.5 139 281 141 278 141 H82 C79 141 76.5 139 76 136 Z" fill={col.pot} />
         <path d="M64 96 H296 C298 96 299.5 97.6 299 99.5 L298 103.5 C297.6 105 296.4 106 295 106 H65 C63.6 106 62.4 105 62 103.5 L61 99.5 C60.5 97.6 62 96 64 96 Z" fill={col.rim} />
         <path d="M100 118 H110 M128 128 H140 M222 128 H234 M252 118 H262" strokeWidth={1.6} />
+      </g>
+      {/* 芽たち・顔：拡大してもギザギザしないよう、揺らしのフィルターをかけずになめらかに描く */}
+      <g stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {/* 芽たち */}
         {leaves(130, 34)}
         {leaves(180, 44, true)}
