@@ -283,8 +283,10 @@ export function MemberPage({ variant }: { variant?: 'classic' } = {}) {
     const before = await listOutbox().catch(() => [] as OutboxOp[])
     if (before.length === 0) { setPendingOps([]); return null }
     const result = await flushOutbox().catch(e => { console.error(e); return null })
-    await refreshPending()
+    // 先にサーバーの最新を取り直してから、送信待ちの表示を消す。
+    // 逆にすると、最新が届くまでの一瞬だけ古い記録（「まだ」など）が表示されてチラつく
     if (result && (result.sent > 0 || result.dropped > 0)) await reloadWaterings()
+    await refreshPending()
     if (result?.dropped) showSyncMsg('送信できなかった記録がありました。もう一度記録してください')
     else if (!quiet && result && result.sent > 0 && result.remaining === 0) showSyncMsg(`保存していた記録を${result.sent}件送信しました`)
     return result
