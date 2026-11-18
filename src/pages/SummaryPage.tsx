@@ -66,17 +66,17 @@ export function SummaryPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       {/* 左上の「草プロジェクト」を押すと戻る（メイン画面のヘッダーと同じ位置・形） */}
-      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 lg:py-3 grid grid-cols-[1fr_auto_1fr] items-center">
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 lg:py-3 flex items-center justify-between gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr]">
         <Link
           to="/?tab=history"
-          className="justify-self-start flex items-center gap-2 rounded-full -ml-1 pl-1 pr-3 py-0.5 hover:bg-white/50"
+          className="justify-self-start flex items-center gap-1.5 lg:gap-2 rounded-full -ml-1 pl-1 pr-3 py-0.5 hover:bg-white/50 shrink-0"
           aria-label="草プロジェクトに戻る"
         >
-          <LogoSprout size={34} className="lg:w-11 lg:h-11" />
-          <span className="font-black text-lg lg:text-2xl">草プロジェクト</span>
+          <LogoSprout size={28} className="lg:w-11 lg:h-11" />
+          <span className="font-black text-base lg:text-2xl whitespace-nowrap">草プロジェクト</span>
         </Link>
-        <h1 className="font-black text-base lg:text-lg">月のまとめ</h1>
-        <span />
+        <h1 className="font-black text-sm lg:text-lg whitespace-nowrap">月のまとめ</h1>
+        <span className="hidden lg:block" />
       </header>
 
       <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-5 pb-16 flex flex-col gap-4">
