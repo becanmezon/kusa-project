@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { MemberPage } from './pages/MemberPage'
 import { RouteError } from './pages/RouteError'
 
@@ -28,8 +28,10 @@ const router = createBrowserRouter([
       { path: '/display', element: page(<DisplayPage />) },
       { path: '/catch',   element: page(<CatchPage />) },
       { path: '/summary', element: page(<SummaryPage />) },
-      { path: '/paper',   element: <MemberPage variant="paper" /> },
-      { path: '/paper/summary', element: page(<SummaryPage variant="paper" />) },
+      { path: '/classic', element: <MemberPage variant="classic" /> },
+      // 以前あった紙の当番表デザインのURLは、旧デザインへ送る
+      { path: '/paper',   element: <Navigate to="/classic" replace /> },
+      { path: '/paper/summary', element: <Navigate to="/summary" replace /> },
     ],
   },
 ])

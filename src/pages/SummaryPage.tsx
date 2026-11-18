@@ -13,11 +13,10 @@ import { today } from '../lib/utils'
 import {
   buildMonthlySummary, monthRange, rankPlaces, shiftMonth, type MonthlySummary,
 } from '../lib/monthlySummary'
-import { PaperSummary } from '../paper/PaperSummary'
 
 const MONTH_RE = /^\d{4}-\d{2}$/
 
-export function SummaryPage({ variant }: { variant?: 'paper' } = {}) {
+export function SummaryPage() {
   const [params, setParams] = useSearchParams()
   const todayStr = today()
   const thisMonth = todayStr.slice(0, 7)
@@ -63,22 +62,6 @@ export function SummaryPage({ variant }: { variant?: 'paper' } = {}) {
   const goMonth = (diff: number) => setParams({ month: shiftMonth(month, diff) })
   const canGoNext = month < thisMonth
   const [y, m] = month.split('-').map(Number)
-
-  // 紙の当番表デザイン
-  if (variant === 'paper') {
-    return (
-      <PaperSummary
-        y={y}
-        m={m}
-        summary={summary}
-        loading={loading}
-        error={error}
-        canGoNext={canGoNext}
-        onPrev={() => goMonth(-1)}
-        onNext={() => goMonth(1)}
-      />
-    )
-  }
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">

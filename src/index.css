@@ -98,76 +98,14 @@ body {
   html { font-size: max(16px, 1.15vw); }
 }
 
-
-/* ════════════════════════════════════════════════════════════
-   紙の当番表・栽培日誌バージョン（/paper）
-   箱ではなく、文字組み・罫線・余白で整理する。影なし、角丸は3pxまで。
-   ════════════════════════════════════════════════════════════ */
-.paper {
-  --p-paper: #f5f0e3;
-  --p-ink: #26221d;
-  --p-sub: #6b6257;
-  --p-faint: #a39a8c;
-  --p-rule: rgba(38, 34, 29, 0.28);
-  --p-leaf: #3d7a2b;
-  --p-rain: #2c6db0;
-  --p-miss: #b0402c;
-  background-color: var(--p-paper);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  color: var(--p-ink);
-  font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+/* ─── 旧デザイン（/classic）：2026-11-17 まで使っていた見た目 ───────────────
+   書体と地色だけ当時のものに戻す（部品は src/classic/ に当時のまま置いてある） */
+.classic {
+  --color-cream: #F6F3E9;
+  --color-cream-dark: #ece8d4;
+  background-color: #F6F3E9;
+  background-image: none;
+  color: #1a150e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', sans-serif;
 }
-/* 日付・見出し：骨格のしっかりした明朝 */
-.paper .p-head { font-family: 'Zen Old Mincho', 'Hiragino Mincho ProN', serif; font-weight: 900; letter-spacing: 0.01em; }
-/* 数字：等幅で桁をそろえる */
-.paper .p-num { font-family: 'BIZ UDGothic', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-.paper .p-rule { border-color: var(--p-rule); }
-.paper .p-sub { color: var(--p-sub); }
-.paper .p-faint { color: var(--p-faint); }
-
-/* 状態だけに使うピル */
-.paper .p-state {
-  display: inline-block; min-width: 4.5em; text-align: center;
-  border-radius: 999px; border: 1.5px solid currentColor;
-  padding: 0.1em 0.7em; font-size: 0.8rem; font-weight: 700; line-height: 1.5;
-  white-space: nowrap;
-}
-.paper .p-state-done { color: var(--p-leaf); background: rgba(61, 122, 43, 0.08); }
-.paper .p-state-rain { color: var(--p-rain); background: rgba(44, 109, 176, 0.08); }
-.paper .p-state-miss { color: var(--p-miss); background: rgba(176, 64, 44, 0.07); }
-.paper .p-state-todo { color: var(--p-ink); background: transparent; border-style: dashed; }
-
-/* ボタン：平らな長方形、角丸3px、影なし */
-.paper .p-btn {
-  border: 1.5px solid var(--p-ink); border-radius: 3px; font-weight: 700;
-  transition: background-color 0.1s ease;
-}
-.paper .p-btn:active:not(:disabled) { transform: translateY(1px); }
-.paper .p-btn-primary { background: var(--p-leaf); border-color: var(--p-leaf); color: #fff; }
-.paper .p-btn-primary:hover { background: #33692a; }
-.paper .p-btn-plain { background: transparent; }
-.paper .p-btn-plain:hover { background: rgba(38, 34, 29, 0.05); }
-
-/* 入力欄：下線だけ */
-.paper .p-input {
-  width: 100%; background: transparent; border: 0; border-bottom: 1.5px solid var(--p-rule);
-  border-radius: 0; padding: 0.4rem 0;
-}
-.paper .p-input:focus { outline: none; border-bottom-color: var(--p-ink); }
-
-/* W タブ（共通部品）を紙のルールに合わせる：箱をやめて罫線で区切る */
-.paper .hand-card, .paper .soft-card {
-  background: transparent; border: 0; border-top: 1px solid var(--p-rule);
-  border-radius: 0; box-shadow: none; padding-left: 0; padding-right: 0;
-}
-.paper .hand-btn { border: 1.5px solid var(--p-leaf); border-radius: 3px; box-shadow: none; }
-.paper .bg-grass { background: var(--p-leaf); color: #fff; }
-.paper .bg-grass:hover { background: #33692a; }
-.paper .rounded-full, .paper .rounded-2xl, .paper .rounded-xl, .paper .rounded-lg { border-radius: 3px; }
-.paper .p-state { border-radius: 999px; }
-.paper textarea:not(.p-input), .paper input[type="text"]:not(.p-input) {
-  background: transparent; border-radius: 3px; border-color: var(--p-rule);
-}
-/* W のリアクション：紙の版では箱にせず、アイコンと数字だけ（押したものは下線） */
-.paper .w-react { border-color: transparent; background: transparent; padding-left: 0.15rem; padding-right: 0.5rem; }
-.paper .w-react.font-bold { text-decoration: underline; text-underline-offset: 4px; }

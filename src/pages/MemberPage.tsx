@@ -7,12 +7,13 @@ import { TodayWatering } from '../components/TodayWatering'
 import { WateringHistory } from '../components/WateringHistory'
 import { LatestPosts } from '../components/LatestPosts'
 
-// W（投稿一覧）と紙の当番表デザインは、開いたときに初めて読み込む（最初の表示を軽くする）
+// W（投稿一覧）と旧デザインは、開いたときに初めて読み込む（最初の表示を軽くする）
 const PostTimeline    = lazy(() => import('../components/PostTimeline').then(m => ({ default: m.PostTimeline })))
-const PaperShell      = lazy(() => import('../paper/PaperShell').then(m => ({ default: m.PaperShell })))
-const PaperToday      = lazy(() => import('../paper/PaperToday').then(m => ({ default: m.PaperToday })))
-const PaperHistory    = lazy(() => import('../paper/PaperHistory').then(m => ({ default: m.PaperHistory })))
-const PaperLatestPost = lazy(() => import('../paper/PaperLatestPost').then(m => ({ default: m.PaperLatestPost })))
+const ClassicShell    = lazy(() => import('../classic/ClassicShell').then(m => ({ default: m.ClassicShell })))
+const ClassicToday    = lazy(() => import('../classic/TodayWatering').then(m => ({ default: m.TodayWatering })))
+const ClassicHistory  = lazy(() => import('../classic/WateringHistory').then(m => ({ default: m.WateringHistory })))
+const ClassicLatest   = lazy(() => import('../classic/LatestPosts').then(m => ({ default: m.LatestPosts })))
+const ClassicTimeline = lazy(() => import('../classic/PostTimeline').then(m => ({ default: m.PostTimeline })))
 
 function TabLoading() {
   return (
@@ -61,7 +62,7 @@ function searchParamToTab(p: string | null): Tab {
   return 'today'
 }
 
-export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
+export function MemberPage({ variant }: { variant?: 'classic' } = {}) {
   const [userName, setUserName] = useState<string | null>(getSavedName() || null)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -112,7 +113,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
       navigate('/admin')
     }
   }
-  // ── 隠しコマンド: 今日タブを5回連続で押すと、紙の当番表デザイン（/paper）と行き来する ──
+  // ── 隠しコマンド: 今日タブを5回連続で押すと、旧デザイン（/classic）と行き来する ──
   const todayTapRef = useRef({ count: 0, lastTapAt: 0 })
   const handleTodayTap = () => {
     changeTab('today')
@@ -127,7 +128,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
       const keep = new URLSearchParams(searchParams)
       keep.delete('tab')
       const qs = keep.toString()
-      navigate((variant === 'paper' ? '/' : '/paper') + (qs ? `?${qs}` : ''))
+      navigate((variant === 'classic' ? '/' : '/classic') + (qs ? `?${qs}` : ''))
     }
   }
 
@@ -442,21 +443,23 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
     </div>
   ) : null
 
-  // ── 紙の当番表デザイン ─────────────────────────────────────
-  if (variant === 'paper') {
-    const historyProps = {
-      history: buildWateringHistory(viewWaterings, historyPastDays + 1),
-      shifts,
-      pastDays: historyPastDays,
-      hasMore: historyPastDays < HISTORY_MAX_PAST_DAYS,
-      loadingMore: loadingMoreHistory,
-      onLoadMore: loadMoreHistory,
-    }
+  // ── 旧デザイン（2026-11-17 まで使っていた見た目） ─────────────────
+  if (variant === 'classic') {
+    const history = (
+      <ClassicHistory
+        history={buildWateringHistory(viewWaterings, historyPastDays + 1)}
+        shifts={shifts}
+        pastDays={historyPastDays}
+        hasMore={historyPastDays < HISTORY_MAX_PAST_DAYS}
+        loadingMore={loadingMoreHistory}
+        onLoadMore={loadMoreHistory}
+      />
+    )
     return (
       <>
       {offlineBanner}
       <Suspense fallback={<TabLoading />}>
-      <PaperShell
+      <ClassicShell
         tab={tab}
         userName={userName}
         isDesktop={isDesktop}
@@ -469,7 +472,7 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
         onRefresh={handleRefresh}
         onChangeName={handleChangeName}
         today={
-          <PaperToday
+          <ClassicToday
             userName={userName}
             todayMorningWatering={todayMorningWatering}
             todayEveningWatering={todayEveningWatering}
@@ -480,13 +483,18 @@ export function MemberPage({ variant }: { variant?: 'paper' } = {}) {
             onUndo={handleUndo}
           />
         }
-        todayBelow={isDesktop ? (
-          <PaperLatestPost posts={posts} reactions={reactions} replies={replies} onOpenAll={() => changeTab('whisper')} />
-        ) : null}
-        todaySide={isDesktop ? <PaperHistory {...historyProps} fill /> : null}
-        history={<PaperHistory {...historyProps} summaryHref="/paper/summary" />}
+        todayBelow={
+          <ClassicLatest
+            posts={posts}
+            reactions={reactions}
+            replies={replies}
+            getImageUrl={getVegetableImageUrl}
+            onOpenAll={() => changeTab('whisper')}
+          />
+        }
+        history={history}
         whisper={
-          <PostTimeline
+          <ClassicTimeline
             userName={userName}
             posts={posts}
             reactions={reactions}
