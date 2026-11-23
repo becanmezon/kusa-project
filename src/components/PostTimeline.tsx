@@ -475,6 +475,30 @@ export function PostTimeline({
     setImagePreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))])
   }
 
+  // コピーした画像を貼り付け（Ctrl+V / ⌘+V）で追加する。
+  // 投稿欄に入力中のとき、またはどの入力欄にもいないときに受け付ける（返信欄・編集欄は対象外）
+  const composerRef = useRef<HTMLTextAreaElement>(null)
+  const addImagesRef = useRef(addImages)
+  useEffect(() => { addImagesRef.current = addImages })
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const inOtherField = target && target !== composerRef.current
+        && (target.closest('input, textarea, [contenteditable="true"]') !== null)
+      if (inOtherField) return
+      const files = Array.from(e.clipboardData?.items ?? [])
+        .filter(it => it.kind === 'file' && it.type.startsWith('image/'))
+        .map(it => it.getAsFile())
+        .filter((f): f is File => f !== null)
+      if (files.length === 0) return
+      // 画像だけのときは貼り付けを横取りする（文字もあるときは、文字は普通に貼られる）
+      if (!e.clipboardData?.types.includes('text/plain')) e.preventDefault()
+      addImagesRef.current(files)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [])
+
   const removeImage = (index: number) => {
     URL.revokeObjectURL(imagePreviews[index])
     setImageFiles(prev => prev.filter((_, i) => i !== index))
@@ -511,6 +535,7 @@ export function PostTimeline({
       {/* 投稿フォーム */}
       <div className="hand-card p-4 space-y-3">
         <textarea
+          ref={composerRef}
           value={body}
           onChange={e => setBody(e.target.value.slice(0, MAX_BODY))}
           placeholder={`${userName} のつぶやき（${MAX_BODY}文字まで）`}
@@ -540,11 +565,12 @@ export function PostTimeline({
               <button
                 onClick={() => fileRef.current?.click()}
                 className="flex items-center gap-1.5 text-soil-400 text-sm hover:text-leaf-500 transition-colors"
+                title="コピーした画像は、貼り付け（Ctrl+V / ⌘+V）でも追加できます"
               >
                 <ImageIcon size={18} />
                 {imageFiles.length > 0
                   ? <span className="tabular-nums">{imageFiles.length}/{MAX_IMAGES}</span>
-                  : <span>画像</span>
+                  : <span>画像<span className="hidden lg:inline">（貼り付けもOK）</span></span>
                 }
               </button>
             ) : (
