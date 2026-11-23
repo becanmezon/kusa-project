@@ -15,7 +15,7 @@ const KEY_SPEED = 720 // px/秒
 /** デモのかごの最高速度。機械の限界を見せるため、マウスで動かせる最速に近い値にしている（1フレームで200px） */
 const DEMO_SPEED = 12000
 /** デモで虫に当たる重み（ハート3個のとき, 2個のとき）。野菜1個を取る価値を100として比べる */
-const DEMO_BUG_COST = [30, 100]
+const DEMO_BUG_COST = [300, 600]
 
 type Kind = 'veg' | 'gold' | 'bad' | 'water'
 
@@ -332,19 +332,23 @@ export class CatchGame {
       const r = it.size * 0.4
       const half = BASKET_W / 2 + r * 0.4
       const bad = it.def.kind === 'bad'
+      let firstK = -1
       let lastK = -1
-      let lastX = 0
+      const xs: number[] = []
       for (let k = 1; k <= STEPS; k++) {
         const y = it.y + it.vy * STEP * k
         if (y - r > top + 18) break
         if (y + r < top) continue
         const x = it.wobble ? Math.max(30, Math.min(W - 30, it.baseX + Math.sin(y / 70) * it.wobble)) : it.x
-        if (bad) mark(k, x, half + 10, -bugCost) // 受け止める範囲に入っている間は、この重みで避ける（余裕をもって）
-        else { lastK = k; lastX = x }
+        if (bad) mark(k, x, half + 2, -bugCost) // 受け止める範囲に入っている間は、この重みで避ける
+        else { if (firstK < 0) firstK = k; lastK = k; xs[k] = x }
       }
-      // 野菜は「受け止める範囲を通り抜ける最後の歩」に重なっていれば必ず取れる。
-      // そこに得点を置くと、ぎりぎりまで寄せて取りに行ける。早く届く野菜ほど少しだけ高く。
-      if (!bad && lastK > 0) mark(lastK, lastX, half - 6, 100 - lastK * 0.05)
+      // 野菜は、受け止める範囲を通り抜けている間のどこか1歩でかごと重なれば取れる。
+      // その価値（100）を通り抜ける歩に等分して置くと、どこかで重なる動きを素直に探せる（最後の1歩だけに置くより取りこぼしが大きく減る）
+      if (!bad && lastK > 0) {
+        const n = lastK - firstK + 1
+        for (let k = firstK; k <= lastK; k++) mark(k, xs[k], half, (100 - lastK * 0.05) / n)
+      }
     }
 
     // 後ろから最大値を計算（動かないことをわずかに優先して、無駄なふらつきを抑える）
