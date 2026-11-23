@@ -97,6 +97,13 @@ export function CatchPage() {
     gameRef.current?.pointTo(((e.clientX - rect.left) / rect.width) * W)
   }
 
+  // ゲーム画面をクリックすると一時停止／再開（ボタンを押したときは、そのボタンの動きだけ）
+  const onGameClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    const game = gameRef.current
+    if (game && (game.phase === 'playing' || game.phase === 'paused')) game.togglePause()
+  }
+
   const s = snap
   const timePct = s ? (s.timeLeft / GAME_SECONDS) * 100 : 100
   const mul = s ? multiplierFor(s.combo) : 1
@@ -157,6 +164,7 @@ export function CatchPage() {
             ref={wrapRef}
             className="hand-card relative overflow-hidden cursor-none touch-none"
             onPointerMove={onPointerMove}
+            onClick={onGameClick}
           >
             <canvas ref={canvasRef} className="block w-full" style={{ aspectRatio: `${W} / ${H}` }} />
 
@@ -181,7 +189,7 @@ export function CatchPage() {
                   ))}
                 </p>
                 <p className="hidden sm:block text-sm text-soil-500 mb-5">
-                  操作：マウスを動かす / ← → キー（A・D でもOK） ／ 一時停止：P キー<br />
+                  操作：マウスを動かす / ← → キー（A・D でもOK） ／ 一時停止：クリック（P キーでもOK）<br />
                   続けてキャッチするとコンボで得点が最大5倍に
                 </p>
                 <StartButton onClick={() => gameRef.current?.start()} label="スタート" />
@@ -191,7 +199,8 @@ export function CatchPage() {
 
             {s?.phase === 'paused' && (
               <Overlay>
-                <h2 className="text-3xl font-extrabold text-soil-700 mb-5">一時停止中</h2>
+                <h2 className="text-3xl font-extrabold text-soil-700 mb-2">一時停止中</h2>
+                <p className="text-sm text-soil-500 mb-5">画面をクリックしてもつづけられます</p>
                 <StartButton onClick={() => gameRef.current?.togglePause()} label="つづける" />
               </Overlay>
             )}
