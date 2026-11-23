@@ -181,11 +181,11 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
           </div>
         )}
 
-        {/* 記録した本人にだけ：野菜キャッチへの入口 */}
+        {/* 記録した本人にだけ：野菜キャッチへの入口（PC専用のゲームなのでスマホでは出さない） */}
         {isRecorder && (
           <Link
             to="/catch"
-            className="hand-btn mt-4 flex items-center justify-center gap-2 w-full bg-sun font-black py-3 lg:py-4 text-base lg:text-xl"
+            className="hand-btn mt-4 hidden lg:flex items-center justify-center gap-2 w-full bg-sun font-black py-3 lg:py-4 text-base lg:text-xl"
           >
             <Gamepad2 size={20} className="lg:w-7 lg:h-7" /> 野菜キャッチで遊ぶ
           </Link>
