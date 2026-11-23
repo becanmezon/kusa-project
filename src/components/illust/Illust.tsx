@@ -215,7 +215,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
     // 絵は切らずに全体を収め、足りない左右は空と地面の色で続ける
     <div
       className={`overflow-hidden ${className}`}
-      style={{ background: `linear-gradient(to bottom, ${sky} 82.6%, ${INK} 82.6%, ${INK} calc(82.6% + 2px), ${col.grass} calc(82.6% + 2px))` }}
+      style={{ background: `linear-gradient(to bottom, ${sky} 82.6%, ${col.grass} 82.6%)` }}
     >
     <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMax meet" className="block w-full h-full" overflow="visible" role="img" aria-label={
       state === 'todo' ? 'まだ水やりしていないプランター' : state === 'done' ? '水やりが終わったプランター' : '雨が降っているプランター'
@@ -272,9 +272,12 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
             <path d="M276 42 C262 42 260 26 272 23 C273 11 291 7 298 17 C305 8 323 12 322 25 C334 26 334 42 320 42 Z" fill="#EEF3F7" />
           </g>
         )}
-        {/* 地面 */}
-        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124 V154 H-4 Z" fill={col.grass} stroke="none" />
-        <path d="M-4 124 C40 122 80 128 120 125 C170 121 220 128 270 124 C310 121 340 126 364 124" fill="none" />
+      </g>
+      {/* 地面：揺らしのフィルターをかけると左右に延ばした線がところどころ欠けるので、素の線で描く */}
+      <g stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+        {/* 横長の画面でも線が途切れないよう、左右に大きく延ばして1本で描く */}
+        <path d="M-2000 124 H-4 C40 124 80 126.5 120 125.5 C170 124.5 220 126.5 270 125 C310 124 340 124 364 124 H2360 V154 H-2000 Z" fill={col.grass} stroke="none" />
+        <path d="M-2000 124 H-4 C40 124 80 126.5 120 125.5 C170 124.5 220 126.5 270 125 C310 124 340 124 364 124 H2360" fill="none" />
       </g>
       {/* 芽たち：プランターより先に描いて、茎の根元が縁の後ろに隠れるようにする。
           拡大してもギザギザしないよう、揺らしのフィルターはかけない */}
