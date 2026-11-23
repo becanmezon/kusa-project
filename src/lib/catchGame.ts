@@ -14,6 +14,8 @@ const BASKET_Y = H - 70
 const KEY_SPEED = 720 // px/秒
 /** デモのかごの最高速度。機械の限界を見せるため、マウスで動かせる最速に近い値にしている（1フレームで200px） */
 const DEMO_SPEED = 12000
+/** デモで虫に当たる重み（ハート3個のとき, 2個のとき）。野菜1個を取る価値を100として比べる */
+const DEMO_BUG_COST = [30, 100]
 
 type Kind = 'veg' | 'gold' | 'bad' | 'water'
 
@@ -21,22 +23,58 @@ interface ItemDef {
   sprite: SpriteName
   kind: Kind
   points: number
-  weight: number // 出やすさ
+  weight: number // 虫の出やすさの計算に使う（野菜の数は VEG_COUNT で決まる）
 }
 
-// 野菜は3種類、ダメなもの（虫）は1種類。虫が半分近く落ちてくる鬼モード
+// 野菜は3種類、ダメなもの（虫）は1種類。野菜は毎回ちょうど VEG_COUNT 個、虫はランダムに落ちてくる鬼モード
 const ITEMS: ItemDef[] = [
   { sprite: 'tomato', kind: 'veg', points: 10, weight: 12 },
   { sprite: 'carrot', kind: 'veg', points: 10, weight: 12 },
   { sprite: 'eggplant', kind: 'veg', points: 10, weight: 12 },
-  { sprite: 'bug', kind: 'bad', points: 0, weight: 27 },
+  { sprite: 'bug', kind: 'bad', points: 0, weight: 24.3 }, // 元（27）の0.9倍。出る数の計算に使う
 ]
-const TOTAL_WEIGHT = ITEMS.reduce((s, i) => s + i.weight, 0)
+const VEGS = ITEMS.filter((i) => i.kind !== 'bad')
+const BUG = ITEMS.find((i) => i.kind === 'bad')!
+
+/** 1試合で落ちてくる野菜の数（毎回ぴったりこの数） */
+export const VEG_COUNT = 210
+/** 野菜が出てくる時間帯（秒）。最後の野菜も60秒以内にかごの高さまで届くよう、59秒で打ち止め */
+const VEG_FROM = 0.4
+const VEG_TO = 59
 /**
- * 出てくる間隔の倍率。野菜だけを以前（重み 10×3＋虫27＝57）の1.2倍に増やし、虫の数は変えないため、
- * 全体の出現を 63/57 倍に速める（野菜 36/63×63/57 = 36/57 = 30/57×1.2、虫 27/57 のまま）
+ * 虫の出てくる間隔の倍率。元の設定（野菜と虫あわせて重み57の中から選ぶ）での虫の数（重み27）の0.9倍にする。
+ * 虫だけを出すので、間隔を 57 / 24.3 倍に広げる
  */
-const SPAWN_INTERVAL_SCALE = 57 / TOTAL_WEIGHT
+// 最初と最後の端数の分だけ数がわずかに多くなるので、実測（300試合）に合わせて 1.026 倍で補正している
+const BUG_INTERVAL_SCALE = (57 / BUG.weight) * 1.026
+
+/**
+ * 野菜を出す時刻の一覧を作る（毎回ランダム・ちょうど VEG_COUNT 個）。
+ * 後半ほど間隔が短くなる（元の難しくなり方：平均の間隔 0.25 − 0.1×進み具合 秒）ように並べる。
+ * 時間を VEG_COUNT 等分した区間に1個ずつランダムに置くので、偏りすぎない。
+ */
+function makeVegSchedule(): number[] {
+  // 出やすさ（1 / 平均の間隔）を積み上げた表を作り、等分した位置の時刻を逆に引く
+  const N = 600
+  const ts: number[] = []
+  const cum: number[] = [0]
+  for (let i = 0; i <= N; i++) ts.push(VEG_FROM + ((VEG_TO - VEG_FROM) * i) / N)
+  for (let i = 1; i <= N; i++) {
+    const mid = (ts[i - 1] + ts[i]) / 2
+    const rate = 1 / (0.25 - 0.1 * Math.min(1, mid / GAME_SECONDS))
+    cum.push(cum[i - 1] + rate * (ts[i] - ts[i - 1]))
+  }
+  const total = cum[N]
+  const out: number[] = []
+  let j = 1
+  for (let k = 0; k < VEG_COUNT; k++) {
+    const u = ((k + Math.random()) / VEG_COUNT) * total
+    while (j < N && cum[j] < u) j++
+    const f = (u - cum[j - 1]) / (cum[j] - cum[j - 1] || 1)
+    out.push(ts[j - 1] + f * (ts[j] - ts[j - 1]))
+  }
+  return out
+}
 
 interface Item {
   def: ItemDef
@@ -105,6 +143,8 @@ export class CatchGame {
   private targetX: number | null = null
   private keys = new Set<string>()
   private spawnTimer = 0
+  private vegSchedule: number[] = []
+  private vegIndex = 0
   private elapsed = 0
   private lastTs = 0
   private raf = 0
@@ -163,6 +203,8 @@ export class CatchGame {
     this.caught = 0
     this.elapsed = 0
     this.spawnTimer = 0.4
+    this.vegSchedule = makeVegSchedule()
+    this.vegIndex = 0
     this.isNewBest = false
     this.lifeBonus = 0
     this.phase = 'playing'
@@ -215,12 +257,16 @@ export class CatchGame {
     }
     this.basketX = Math.max(BASKET_W / 2, Math.min(W - BASKET_W / 2, this.basketX))
 
-    // 出現
+    // 出現：野菜は決めておいた時刻に、虫はランダムな間隔で
+    while (this.vegIndex < this.vegSchedule.length && this.elapsed >= this.vegSchedule[this.vegIndex]) {
+      this.spawn(VEGS[Math.floor(Math.random() * VEGS.length)])
+      this.vegIndex++
+    }
     this.spawnTimer -= dt
     if (this.spawnTimer <= 0) {
-      this.spawn()
+      this.spawn(BUG)
       const d = this.difficulty
-      this.spawnTimer = (0.2 - 0.1 * d + Math.random() * 0.1) * SPAWN_INTERVAL_SCALE
+      this.spawnTimer = (0.2 - 0.1 * d + Math.random() * 0.1) * BUG_INTERVAL_SCALE
     }
 
     // 落下と当たり判定
@@ -280,6 +326,8 @@ export class CatchGame {
       const hi = Math.min(N - 1, Math.floor((x + half - minX) / CELL))
       for (let c = lo; c <= hi; c++) reward[k][c] += v
     }
+    // 虫に当たる重み：ハートが残り1個なら絶対に避ける。それ以外は、コンボを守るためなら当たってもよい
+    const bugCost = this.life <= 1 ? 1e6 : this.life === 2 ? DEMO_BUG_COST[1] : DEMO_BUG_COST[0]
     for (const it of this.items) {
       const r = it.size * 0.4
       const half = BASKET_W / 2 + r * 0.4
@@ -291,7 +339,7 @@ export class CatchGame {
         if (y - r > top + 18) break
         if (y + r < top) continue
         const x = it.wobble ? Math.max(30, Math.min(W - 30, it.baseX + Math.sin(y / 70) * it.wobble)) : it.x
-        if (bad) mark(k, x, half + 10, -1000) // 受け止める範囲に入っている間はずっと避ける（余裕をもって）
+        if (bad) mark(k, x, half + 10, -bugCost) // 受け止める範囲に入っている間は、この重みで避ける（余裕をもって）
         else { lastK = k; lastX = x }
       }
       // 野菜は「受け止める範囲を通り抜ける最後の歩」に重なっていれば必ず取れる。
@@ -344,10 +392,7 @@ export class CatchGame {
     this.flash = Math.max(0, this.flash - dt)
   }
 
-  private spawn() {
-    let r = Math.random() * TOTAL_WEIGHT
-    let def = ITEMS[0]
-    for (const it of ITEMS) { r -= it.weight; if (r <= 0) { def = it; break } }
+  private spawn(def: ItemDef) {
     const d = this.difficulty
     const size = def.kind === 'gold' ? 58 : 52
     const x = 40 + Math.random() * (W - 80)
@@ -367,8 +412,8 @@ export class CatchGame {
   private catchItem(it: Item) {
     const { kind, points } = it.def
     if (kind === 'bad') {
+      // 虫はハートが減るだけで、コンボは切れない（ハートを使ってでもコンボを守る戦い方ができる）
       this.life -= 1
-      this.combo = 0
       this.shake = 0.3
       this.flash = 0.25
       this.addFloat('虫だ！', it.x, BASKET_Y - 50, '#c0392b')

@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Bot, Crown, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
 import { spriteUrl, type SpriteName } from '../lib/catchSprites'
-import { CatchGame, GAME_SECONDS, LIFE_BONUS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
+import { CatchGame, GAME_SECONDS, LIFE_BONUS, VEG_COUNT, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
 import { fetchCatchRanking, submitCatchScore, type CatchRankEntry } from '../lib/db'
 import { getSavedName } from '../lib/utils'
 
 const RULES: { sprites: SpriteName[]; text: string }[] = [
-  { sprites: ['tomato', 'carrot', 'eggplant'], text: '野菜をキャッチで10点' },
-  { sprites: ['bug'], text: '虫をキャッチするとハートが減る（3回でおしまい）' },
+  { sprites: ['tomato', 'carrot', 'eggplant'], text: `野菜をキャッチで10点（全部で${VEG_COUNT}個落ちてくる）` },
+  { sprites: ['bug'], text: '虫をキャッチするとハートが減る（3回でおしまい・コンボは切れない）' },
 ]
 
 type RankState = { status: 'loading' | 'ok' | 'error'; list: CatchRankEntry[] }
