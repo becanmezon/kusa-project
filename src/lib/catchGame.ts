@@ -12,8 +12,8 @@ const BASKET_W = 110
 const BASKET_H = 54
 const BASKET_Y = H - 70
 const KEY_SPEED = 720 // px/秒
-/** デモのかごの最高速度。マウス操作ならこのくらいは一瞬で動ける（マウスはカーソルへ 1/60 秒で距離の3割ずつ寄る） */
-const DEMO_SPEED = 2400
+/** デモのかごの最高速度。機械の限界を見せるため、マウスで動かせる最速に近い値にしている（1フレームで200px） */
+const DEMO_SPEED = 12000
 
 type Kind = 'veg' | 'gold' | 'bad' | 'water'
 
@@ -256,7 +256,7 @@ export class CatchGame {
   // ---- デモプレイの自動操作 ----
   // この先 DEMO_STEPS 歩ぶん（1歩 = 1/60秒）の野菜と虫の動きを計算し、
   // 「虫には一度も触れず、取れる野菜がいちばん多い」かごの動きを動的計画法で探す。
-  // かごの速さは、人がマウスで素早く動かしたときと同じくらい（DEMO_SPEED）にしている。
+  // かごの速さは DEMO_SPEED（マウスで動かせる最速に近い値）。
   private planDemoX(dt: number): number {
     const STEP = 1 / 60
     const STEPS = 130
