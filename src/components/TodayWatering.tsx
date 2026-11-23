@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { Trash2, Gamepad2 } from 'lucide-react'
 import type { Watering, Shift } from '../types'
@@ -27,7 +28,6 @@ function shiftNames(shift: Shift | null, slot: 'morning' | 'evening'): string {
 }
 
 /** 野菜なぞりゲーム（今日「水やりした」人だけ遊べる） */
-const GAME_URL = 'https://yasai-nazori.vercel.app/'
 
 interface SlotCardProps {
   userName: string
@@ -181,16 +181,14 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
           </div>
         )}
 
-        {/* 記録した本人にだけ：ゲームへの入口 */}
+        {/* 記録した本人にだけ：野菜キャッチへの入口 */}
         {isRecorder && (
-          <a
-            href={`${GAME_URL}?name=${encodeURIComponent(userName)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/catch"
             className="hand-btn mt-4 flex items-center justify-center gap-2 w-full bg-sun font-black py-3 lg:py-4 text-base lg:text-xl"
           >
-            <Gamepad2 size={20} className="lg:w-7 lg:h-7" /> ごほうびゲームで遊ぶ
-          </a>
+            <Gamepad2 size={20} className="lg:w-7 lg:h-7" /> 野菜キャッチで遊ぶ
+          </Link>
         )}
       </div>
     </section>

@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase'
-import { restSelect, restUpsert, restDelete, publicStorageUrl } from './rest'
+import { restSelect, restUpsert, restDelete, restInsert, publicStorageUrl } from './rest'
 import { resizeImage, today } from './utils'
 import type { Watering, Shift, Vegetable, Post, Reaction, Reply } from '../types'
 
@@ -257,4 +257,35 @@ export function buildWateringHistory(waterings: Watering[], days = 14): HistoryE
       evening: waterings.find(w => w.date === ds && w.slot === 'evening') ?? null,
     }
   })
+}
+
+// ─── 野菜キャッチのランキング ────────────────────────────────
+// 1回遊ぶごとに1行追加し、表示するときに「1人1行（その人の最高点）」にまとめる。
+
+export interface CatchRankEntry {
+  name: string
+  score: number
+  created_at: string
+}
+
+/** 上位 limit 人（1人につき最高点の1行）。同点なら先に出した人が上 */
+export async function fetchCatchRanking(limit = 10): Promise<CatchRankEntry[]> {
+  const rows = await restSelect<CatchRankEntry>('catch_scores', [
+    ['order', 'score.desc,created_at.asc'],
+    ['limit', '500'],
+  ])
+  const seen = new Set<string>()
+  const out: CatchRankEntry[] = []
+  for (const r of rows) {
+    if (seen.has(r.name)) continue
+    seen.add(r.name)
+    out.push(r)
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+/** 1回分の点数を記録する */
+export function submitCatchScore(name: string, score: number): Promise<void> {
+  return restInsert('catch_scores', { name, score: Math.max(0, Math.round(score)) })
 }

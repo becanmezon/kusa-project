@@ -172,7 +172,6 @@ const SCENE_COLORS: Record<SceneState, { sky: string; grass: string; leafA: stri
 }
 
 export function GardenScene({ state, night = false, className = 'w-full aspect-[12/5]' }: { state: SceneState; night?: boolean; className?: string }) {
-  const id = useId().replace(/:/g, '')
   const col = SCENE_COLORS[state]
   const sky = night ? (state === 'rain' ? '#53657a' : '#3f5d80') : col.sky
   const happy = state !== 'todo'
@@ -220,13 +219,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
     <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMax meet" className="block w-full h-full" overflow="visible" role="img" aria-label={
       state === 'todo' ? 'まだ水やりしていないプランター' : state === 'done' ? '水やりが終わったプランター' : '雨が降っているプランター'
     }>
-      <defs>
-        <filter id={`g${id}`} x="-2%" y="-2%" width="104%" height="104%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" />
-          <feDisplacementMap in="SourceGraphic" scale="1.2" />
-        </filter>
-      </defs>
-      <g filter={`url(#g${id})`} stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <g stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {/* 空のもの */}
         {night && state !== 'rain' && (
           <g>
@@ -286,7 +279,7 @@ export function GardenScene({ state, night = false, className = 'w-full aspect-[
         {leaves(180, 44, true, 2.1, 6.8)}
         {leaves(230, 36, false, 4.3, 7.9)}
       </g>
-      <g filter={`url(#g${id})`} stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <g stroke={INK} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         {/* プランター */}
         {/* 雨の日は地面に水たまり */}
         {state === 'rain' && (

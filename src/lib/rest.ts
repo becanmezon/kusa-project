@@ -54,6 +54,15 @@ export async function restUpsert<T>(table: string, row: Record<string, unknown>,
   return rows[0]
 }
 
+/** 追加（同じものがあっても上書きしない）。返り値なし */
+export function restInsert(table: string, row: Record<string, unknown>): Promise<void> {
+  return request<void>(table, {
+    method: 'POST',
+    headers: headers({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+    body: JSON.stringify(row),
+  })
+}
+
 /** 削除。filters は列名と値（すべて eq で絞り込む） */
 export function restDelete(table: string, filters: Record<string, string>): Promise<void> {
   const qs = new URLSearchParams(Object.entries(filters).map(([k, v]) => [k, `eq.${v}`])).toString()

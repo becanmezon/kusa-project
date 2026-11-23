@@ -6,6 +6,8 @@ export const W = 960
 export const H = 600
 export const GAME_SECONDS = 60
 const MAX_LIFE = 3
+/** 60秒を生き残ったときに残っていたハートの数に応じたボーナス（0個,1個,2個,3個） */
+export const LIFE_BONUS = [0, 10, 30, 50]
 const BASKET_W = 110
 const BASKET_H = 54
 const BASKET_Y = H - 70
@@ -69,6 +71,8 @@ export interface GameSnapshot {
   best: number
   caught: number
   isNewBest: boolean
+  /** 最後まで残ったハートのボーナス（タイムアップで終わったときだけ） */
+  lifeBonus: number
 }
 
 const BEST_KEY = 'kusa_catch_best'
@@ -105,6 +109,7 @@ export class CatchGame {
   combo = 0
   caught = 0
   best = loadBest()
+  lifeBonus = 0
   isNewBest = false
 
   private canvas: HTMLCanvasElement
@@ -129,6 +134,7 @@ export class CatchGame {
     return {
       phase: this.phase, score: this.score, timeLeft: this.timeLeft, life: this.life,
       combo: this.combo, best: this.best, caught: this.caught, isNewBest: this.isNewBest,
+      lifeBonus: this.lifeBonus,
     }
   }
 
@@ -146,6 +152,7 @@ export class CatchGame {
     this.elapsed = 0
     this.spawnTimer = 0.4
     this.isNewBest = false
+    this.lifeBonus = 0
     this.phase = 'playing'
     this.emit()
   }
@@ -297,6 +304,11 @@ export class CatchGame {
 
   private finish() {
     this.phase = 'over'
+    // 60秒を生き残ったら、残りハートの数だけボーナス（ベストの判定もボーナス込み）
+    if (this.life > 0) {
+      this.lifeBonus = LIFE_BONUS[Math.min(this.life, LIFE_BONUS.length - 1)]
+      this.score += this.lifeBonus
+    }
     if (this.score > this.best) {
       this.best = this.score
       this.isNewBest = true

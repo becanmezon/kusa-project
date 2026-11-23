@@ -1,24 +1,58 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
+import { ArrowLeft, Crown, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
 import { spriteUrl, type SpriteName } from '../lib/catchSprites'
-import { CatchGame, GAME_SECONDS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
+import { CatchGame, GAME_SECONDS, LIFE_BONUS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
+import { fetchCatchRanking, submitCatchScore, type CatchRankEntry } from '../lib/db'
+import { getSavedName } from '../lib/utils'
 
 const RULES: { sprites: SpriteName[]; text: string }[] = [
   { sprites: ['tomato', 'carrot', 'eggplant'], text: '野菜をキャッチで10点' },
   { sprites: ['bug'], text: '虫をキャッチするとハートが減る（3回でおしまい）' },
 ]
+const BONUS_TEXT = `60秒たったときに残っていたハート：1個 +${LIFE_BONUS[1]}点／2個 +${LIFE_BONUS[2]}点／3個 +${LIFE_BONUS[3]}点`
+
+type RankState = { status: 'loading' | 'ok' | 'error'; list: CatchRankEntry[] }
+type SubmitState = 'idle' | 'sending' | 'done' | 'failed' | 'noname'
 
 export function CatchPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<CatchGame | null>(null)
   const [snap, setSnap] = useState<GameSnapshot | null>(null)
+  const [rank, setRank] = useState<RankState>({ status: 'loading', list: [] })
+  const [submit, setSubmit] = useState<SubmitState>('idle')
+  // 草プロジェクトで選んでいる名前でランキングに載せる
+  const [playerName] = useState(() => getSavedName())
+
+  const loadRanking = () => {
+    fetchCatchRanking(10)
+      .then((list) => setRank({ status: 'ok', list }))
+      .catch((e) => { console.error(e); setRank((r) => ({ status: 'error', list: r.list })) })
+  }
+  useEffect(loadRanking, [])
+
+  // ゲームが終わった瞬間に1回だけ点数を送る（ゲームからの通知の中で判定する）
+  const prevPhase = useRef<GameSnapshot['phase'] | null>(null)
+  const onSnapshot = useRef<(next: GameSnapshot) => void>(() => {})
+  useEffect(() => { onSnapshot.current = (next) => {
+    setSnap(next)
+    const was = prevPhase.current
+    prevPhase.current = next.phase
+    if (next.phase === 'playing' && was !== 'paused') setSubmit('idle')
+    if (next.phase !== 'over' || was === 'over') return
+    if (!playerName) { setSubmit('noname'); return }
+    if (next.score <= 0) return
+    setSubmit('sending')
+    submitCatchScore(playerName, next.score)
+      .then(() => { setSubmit('done'); loadRanking() })
+      .catch((e) => { console.error(e); setSubmit('failed') })
+  } })
 
   useEffect(() => {
     document.title = '野菜キャッチ | 草プロジェクト'
     const canvas = canvasRef.current!
-    const game = new CatchGame(canvas, setSnap)
+    const game = new CatchGame(canvas, (next) => onSnapshot.current(next))
     gameRef.current = game
 
     // 表示サイズに合わせて canvas の解像度を調整
@@ -80,8 +114,8 @@ export function CatchPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-4">
-        <div className="w-full max-w-[min(1200px,calc((100vh-9rem)*1.6))]">
+      <main className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 px-4 py-4">
+        <div className="w-full max-w-[min(1000px,calc((100vh-9rem)*1.6))]">
           {/* スコア表示 */}
           <div className="flex items-center gap-4 mb-3">
             <div className="flex items-baseline gap-1">
@@ -141,6 +175,7 @@ export function CatchPage() {
                     </li>
                   ))}
                 </ul>
+                <p className="font-bold text-soil-700 mb-3">{BONUS_TEXT}</p>
                 <p className="text-sm text-soil-500 mb-5">
                   操作：マウスを動かす / ← → キー（A・D でもOK） ／ 一時停止：P キー<br />
                   続けてキャッチするとコンボで得点が最大5倍に
@@ -161,8 +196,17 @@ export function CatchPage() {
               <Overlay>
                 <p className="text-soil-500 mb-1">{s.life <= 0 ? 'ハートがなくなった…' : 'タイムアップ！'}</p>
                 <h2 className="text-6xl font-extrabold text-terra-600 mb-2 tabular-nums">{s.score}<span className="text-2xl ml-1">点</span></h2>
+                {s.lifeBonus > 0 && (
+                  <p className="font-bold text-soil-700 mb-2 flex items-center gap-1.5 tabular-nums">
+                    <span className="flex gap-0.5">
+                      {Array.from({ length: s.life }, (_, i) => <Heart key={i} size={16} className="fill-red-500 text-red-500" />)}
+                    </span>
+                    残りハートボーナス <span className="text-terra-600">+{s.lifeBonus}点</span>
+                  </p>
+                )}
                 {s.isNewBest && <p className="font-black mb-1 bg-sun border-2 border-ink rounded-full px-3 py-0.5">自己ベスト更新！</p>}
                 <p className="text-soil-600 mb-1">キャッチした野菜：{s.caught}個</p>
+                <SubmitNote state={submit} score={s.score} list={rank.list} me={playerName} />
                 <p className="text-sm text-soil-400 mb-5">これまでのベスト：{s.best}点</p>
                 <StartButton onClick={() => gameRef.current?.start()} label="もう一回" icon />
                 <p className="text-xs text-soil-400 mt-2">スペースキーでもう一回</p>
@@ -170,6 +214,7 @@ export function CatchPage() {
             )}
           </div>
         </div>
+        <RankingPanel rank={rank} me={playerName} />
       </main>
     </div>
   )
@@ -191,5 +236,55 @@ function StartButton({ onClick, label, icon }: { onClick: () => void; label: str
     >
       {icon && <RotateCcw size={20} />}{label}
     </button>
+  )
+}
+
+function SubmitNote({ state, score, list, me }: { state: SubmitState; score: number; list: CatchRankEntry[]; me: string }) {
+  if (state === 'sending') return <p className="text-sm text-soil-500 mb-1">ランキングに記録しています…</p>
+  if (state === 'done') {
+    const i = list.findIndex((r) => r.name === me)
+    const mine = i >= 0 ? list[i] : null
+    let text: string
+    if (!mine) text = 'ランキングに記録しました（10位圏外）'
+    else if (score >= mine.score) text = `ランキング ${i + 1}位！`
+    else text = `記録しました（自分の最高は ${i + 1}位・${mine.score}点）`
+    return <p className="text-sm font-bold mb-1">{text}</p>
+  }
+  if (state === 'failed') return <p className="text-sm text-terra-700 mb-1">ランキングに記録できませんでした（通信を確認してね）</p>
+  if (state === 'noname') return <p className="text-sm text-soil-500 mb-1">草プロジェクトで名前を選ぶと、ランキングに載ります</p>
+  return null
+}
+
+function RankingPanel({ rank, me }: { rank: RankState; me: string }) {
+  return (
+    <aside className="soft-card w-full max-w-md lg:w-72 lg:max-w-none shrink-0 overflow-hidden">
+      <h2 className="flex items-center gap-2 font-black text-lg px-4 py-3 border-b-2 border-ink/10">
+        <Crown size={20} className="text-sun-dark" /> ランキング
+        <span className="ml-auto text-xs font-bold text-soil-500">上位10人・1人1回分</span>
+      </h2>
+      {rank.status === 'loading' && rank.list.length === 0 && (
+        <p className="px-4 py-6 text-sm text-soil-500 text-center">読み込み中…</p>
+      )}
+      {rank.status === 'error' && rank.list.length === 0 && (
+        <p className="px-4 py-6 text-sm text-soil-500 text-center">ランキングを読み込めませんでした</p>
+      )}
+      {rank.status === 'ok' && rank.list.length === 0 && (
+        <p className="px-4 py-6 text-sm text-soil-500 text-center">まだ記録がありません。最初の1位になろう！</p>
+      )}
+      {rank.list.length > 0 && (
+        <ol>
+          {rank.list.map((r, i) => (
+            <li
+              key={r.name}
+              className={`flex items-center gap-3 px-4 py-2 border-b border-ink/5 last:border-b-0 ${r.name === me ? 'bg-sun/30' : ''}`}
+            >
+              <span className={`w-7 text-center font-black tabular-nums ${i < 3 ? 'text-terra-600 text-lg' : 'text-soil-500'}`}>{i + 1}</span>
+              <span className="flex-1 font-bold truncate">{r.name}</span>
+              <span className="font-black tabular-nums">{r.score}<span className="text-xs font-bold ml-0.5">点</span></span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </aside>
   )
 }
