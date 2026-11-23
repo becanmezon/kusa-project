@@ -289,3 +289,12 @@ export async function fetchCatchRanking(limit = 10): Promise<CatchRankEntry[]> {
 export function submitCatchScore(name: string, score: number): Promise<void> {
   return restInsert('catch_scores', { name, score: Math.max(0, Math.round(score)) })
 }
+
+/** 期間内に遊ばれた全回の点数（月のまとめ用）。from/to は "YYYY-MM-DD"（日本時間） */
+export function fetchCatchScoresBetween(fromDate: string, toDate: string): Promise<CatchRankEntry[]> {
+  return restSelect<CatchRankEntry>('catch_scores', [
+    ['created_at', `gte.${fromDate}T00:00:00+09:00`],
+    ['created_at', `lte.${toDate}T23:59:59.999+09:00`],
+    ['order', 'score.desc,created_at.asc'],
+  ])
+}

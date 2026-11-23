@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ChevronLeft, ChevronRight,
-  Feather, Heart, MessageCircle, Camera, Loader2,
+  Feather, Heart, MessageCircle, Camera, Loader2, Gamepad2, Crown,
 } from 'lucide-react'
 import { LogoSprout, Medal, WateringCanIcon, DoneMark, MissMark, RainCloudIcon } from '../components/illust/Illust'
 import {
   fetchWaterings, fetchShifts, fetchPosts, fetchReactions, fetchReplies,
-  fetchVegetables, getVegetableImageUrl,
+  fetchVegetables, getVegetableImageUrl, fetchCatchScoresBetween, type CatchRankEntry,
 } from '../lib/db'
 import { today } from '../lib/utils'
 import {
@@ -25,6 +25,7 @@ export function SummaryPage() {
   const month = paramMonth && MONTH_RE.test(paramMonth) ? paramMonth : shiftMonth(thisMonth, -1)
 
   const [summary, setSummary] = useState<MonthlySummary | null>(null)
+  const [catchScores, setCatchScores] = useState<CatchRankEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loadedMonth, setLoadedMonth] = useState<string | null>(null)
 
@@ -42,9 +43,12 @@ export function SummaryPage() {
       fetchReactions(),
       fetchReplies(),
       fetchVegetables().catch(() => []),
+      // 野菜キャッチの記録（読めなくてもまとめは表示する）
+      fetchCatchScoresBetween(from, to).catch(() => [] as CatchRankEntry[]),
     ])
-      .then(([waterings, shifts, posts, reactions, replies, vegetables]) => {
+      .then(([waterings, shifts, posts, reactions, replies, vegetables, scores]) => {
         if (cancelled) return
+        setCatchScores(scores)
         setSummary(buildMonthlySummary({ month, today: todayStr, waterings, shifts, posts, reactions, replies, vegetables }))
         setError(null)
         setLoadedMonth(month)
@@ -108,13 +112,13 @@ export function SummaryPage() {
         {!loading && error && (
           <div className="bg-white rounded-2xl p-6 text-center text-terra-700">{error}</div>
         )}
-        {!loading && !error && summary && <SummaryBody s={summary} />}
+        {!loading && !error && summary && <SummaryBody s={summary} catchScores={catchScores} />}
       </main>
     </div>
   )
 }
 
-function SummaryBody({ s }: { s: MonthlySummary }) {
+function SummaryBody({ s, catchScores }: { s: MonthlySummary; catchScores: CatchRankEntry[] }) {
   return (
     <>
       <RateCard s={s} />
@@ -167,7 +171,36 @@ function SummaryBody({ s }: { s: MonthlySummary }) {
         </Card>
       )}
 
+      <CatchCard scores={catchScores} />
     </>
+  )
+}
+
+/** 野菜キャッチ：その月に遊ばれた回数と、いちばん高い点を出した人 */
+function CatchCard({ scores }: { scores: CatchRankEntry[] }) {
+  const top = scores[0] // 点数の高い順・同点なら先に出した人が先頭
+  const players = new Set(scores.map((r) => r.name)).size
+  return (
+    <Card icon={<Gamepad2 size={20} className="text-leaf-600" />} title="野菜キャッチ">
+      {scores.length === 0 ? (
+        <Empty>この月はまだ誰も遊んでいません</Empty>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2">
+            <MiniStat label="遊ばれた回数" value={scores.length} unit="回" />
+            <MiniStat label="遊んだ人" value={players} unit="人" />
+          </div>
+          <div className="flex items-center gap-3 bg-sun/25 border-2 border-ink/15 rounded-xl p-3">
+            <Crown size={28} className="shrink-0 text-terra-600" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-soil-600">この月のいちばん</div>
+              <div className="font-black text-lg truncate">{top.name} さん</div>
+            </div>
+            <div className="font-black text-2xl tabular-nums">{top.score}<span className="text-sm ml-0.5">点</span></div>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }
 
