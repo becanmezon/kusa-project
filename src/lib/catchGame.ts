@@ -26,12 +26,17 @@ interface ItemDef {
 
 // 野菜は3種類、ダメなもの（虫）は1種類。虫が半分近く落ちてくる鬼モード
 const ITEMS: ItemDef[] = [
-  { sprite: 'tomato', kind: 'veg', points: 10, weight: 10 },
-  { sprite: 'carrot', kind: 'veg', points: 10, weight: 10 },
-  { sprite: 'eggplant', kind: 'veg', points: 10, weight: 10 },
+  { sprite: 'tomato', kind: 'veg', points: 10, weight: 12 },
+  { sprite: 'carrot', kind: 'veg', points: 10, weight: 12 },
+  { sprite: 'eggplant', kind: 'veg', points: 10, weight: 12 },
   { sprite: 'bug', kind: 'bad', points: 0, weight: 27 },
 ]
 const TOTAL_WEIGHT = ITEMS.reduce((s, i) => s + i.weight, 0)
+/**
+ * 出てくる間隔の倍率。野菜だけを以前（重み 10×3＋虫27＝57）の1.2倍に増やし、虫の数は変えないため、
+ * 全体の出現を 63/57 倍に速める（野菜 36/63×63/57 = 36/57 = 30/57×1.2、虫 27/57 のまま）
+ */
+const SPAWN_INTERVAL_SCALE = 57 / TOTAL_WEIGHT
 
 interface Item {
   def: ItemDef
@@ -215,7 +220,7 @@ export class CatchGame {
     if (this.spawnTimer <= 0) {
       this.spawn()
       const d = this.difficulty
-      this.spawnTimer = 0.2 - 0.1 * d + Math.random() * 0.1
+      this.spawnTimer = (0.2 - 0.1 * d + Math.random() * 0.1) * SPAWN_INTERVAL_SCALE
     }
 
     // 落下と当たり判定
