@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Crown, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
+import { ArrowLeft, Bot, Crown, Heart, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
 import { spriteUrl, type SpriteName } from '../lib/catchSprites'
 import { CatchGame, GAME_SECONDS, LIFE_BONUS, W, H, multiplierFor, type GameSnapshot } from '../lib/catchGame'
 import { fetchCatchRanking, submitCatchScore, type CatchRankEntry } from '../lib/db'
@@ -40,6 +40,7 @@ export function CatchPage() {
     prevPhase.current = next.phase
     if (next.phase === 'playing' && was !== 'paused') setSubmit('idle')
     if (next.phase !== 'over' || was === 'over') return
+    if (next.demo) return // デモプレイの点数はランキングに入れない
     if (!playerName) { setSubmit('noname'); return }
     if (next.score <= 0) return
     setSubmit('sending')
@@ -133,8 +134,13 @@ export function CatchPage() {
                 <Heart key={i} size={22} className={i < (s?.life ?? 3) ? 'fill-red-500 text-red-500' : 'text-soil-300'} />
               ))}
             </div>
+            {s?.demo && s.phase !== 'over' && (
+              <span className="flex items-center gap-1 rounded-full border-2 border-ink bg-sky px-3 py-0.5 text-sm font-black whitespace-nowrap">
+                <Bot size={16} /> 機械がデモプレイ中
+              </span>
+            )}
             {s && s.combo >= 2 && (
-              <span className="text-terra-600 font-bold">
+              <span className="text-terra-600 font-bold whitespace-nowrap">
                 {s.combo}コンボ{mul > 1 && <span className="ml-1 bg-terra-500 text-white rounded-full px-2 py-0.5 text-sm">×{mul}</span>}
               </span>
             )}
@@ -193,6 +199,7 @@ export function CatchPage() {
                   続けてキャッチするとコンボで得点が最大5倍に
                 </p>
                 <StartButton onClick={() => gameRef.current?.start()} label="スタート" />
+                <DemoButton onClick={() => gameRef.current?.start(true)} />
                 <p className="hidden sm:block text-xs text-soil-400 mt-2">スペースキーでも始められます</p>
               </Overlay>
             )}
@@ -207,7 +214,7 @@ export function CatchPage() {
 
             {s?.phase === 'over' && (
               <Overlay>
-                <p className="text-soil-500 mb-1">{s.life <= 0 ? 'ハートがなくなった…' : 'タイムアップ！'}</p>
+                <p className="text-soil-500 mb-1">{s.demo ? '機械のデモプレイの結果' : s.life <= 0 ? 'ハートがなくなった…' : 'タイムアップ！'}</p>
                 <h2 className="text-4xl sm:text-6xl font-extrabold text-terra-600 mb-1 sm:mb-2 tabular-nums">{s.score}<span className="text-2xl ml-1">点</span></h2>
                 {s.lifeBonus > 0 && (
                   <p className="font-bold text-soil-700 mb-2 flex items-center gap-1.5 tabular-nums">
@@ -221,8 +228,9 @@ export function CatchPage() {
                 <p className="text-soil-600 mb-1">キャッチした野菜：{s.caught}個</p>
                 <SubmitNote state={submit} score={s.score} list={rank.list} me={playerName} />
                 <p className="text-sm text-soil-400 mb-5">これまでのベスト：{s.best}点</p>
-                <StartButton onClick={() => gameRef.current?.start()} label="もう一回" icon />
-                <p className="hidden sm:block text-xs text-soil-400 mt-2">スペースキーでもう一回</p>
+                <StartButton onClick={() => gameRef.current?.start()} label={s.demo ? '自分で遊ぶ' : 'もう一回'} icon />
+                <DemoButton onClick={() => gameRef.current?.start(true)} again={s.demo} />
+                <p className="hidden sm:block text-xs text-soil-400 mt-2">スペースキーで{s.demo ? '自分で遊ぶ' : 'もう一回'}</p>
               </Overlay>
             )}
           </div>
@@ -271,10 +279,12 @@ function SubmitNote({ state, score, list, me }: { state: SubmitState; score: num
 function RankingPanel({ rank, me }: { rank: RankState; me: string }) {
   return (
     <aside className="soft-card w-full max-w-md lg:w-72 lg:max-w-none shrink-0 overflow-hidden">
-      <h2 className="flex items-center gap-2 font-black text-lg px-4 py-3 border-b-2 border-ink/10">
-        <Crown size={20} className="text-sun-dark" /> ランキング
-        <span className="ml-auto text-xs font-bold text-soil-500">上位10人・各自の自己ベスト</span>
-      </h2>
+      <div className="px-4 py-3 border-b-2 border-ink/10">
+        <h2 className="flex items-center gap-2 font-black text-lg whitespace-nowrap">
+          <Crown size={20} className="text-sun-dark" /> ランキング
+        </h2>
+        <p className="text-xs font-bold text-soil-500 mt-0.5">上位10人・各自の自己ベスト</p>
+      </div>
       {rank.status === 'loading' && rank.list.length === 0 && (
         <p className="px-4 py-6 text-sm text-soil-500 text-center">読み込み中…</p>
       )}
@@ -305,5 +315,16 @@ function RankingPanel({ rank, me }: { rank: RankState; me: string }) {
         </ol>
       )}
     </aside>
+  )
+}
+
+function DemoButton({ onClick, again }: { onClick: () => void; again?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-3 flex items-center gap-1.5 rounded-full border-2 border-ink bg-white px-4 py-1.5 text-sm font-bold hover:bg-sky/40"
+    >
+      <Bot size={18} /> {again ? 'デモプレイをもう一度見る' : '機械のデモプレイを見る'}
+    </button>
   )
 }

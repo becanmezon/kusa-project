@@ -12,6 +12,8 @@ const BASKET_W = 110
 const BASKET_H = 54
 const BASKET_Y = H - 70
 const KEY_SPEED = 720 // px/秒
+/** デモのかごの最高速度。マウス操作ならこのくらいは一瞬で動ける（マウスはカーソルへ 1/60 秒で距離の3割ずつ寄る） */
+const DEMO_SPEED = 2400
 
 type Kind = 'veg' | 'gold' | 'bad' | 'water'
 
@@ -73,6 +75,8 @@ export interface GameSnapshot {
   isNewBest: boolean
   /** 最後まで残ったハートのボーナス（タイムアップで終わったときだけ） */
   lifeBonus: number
+  /** 機械が操作しているデモプレイ中か */
+  demo: boolean
 }
 
 const BEST_KEY = 'kusa_catch_best'
@@ -111,6 +115,8 @@ export class CatchGame {
   best = loadBest()
   lifeBonus = 0
   isNewBest = false
+  /** デモプレイ（機械が操作）。点数はベストやランキングに入れない */
+  demo = false
 
   private canvas: HTMLCanvasElement
   private onChange: (s: GameSnapshot) => void
@@ -134,13 +140,14 @@ export class CatchGame {
     return {
       phase: this.phase, score: this.score, timeLeft: this.timeLeft, life: this.life,
       combo: this.combo, best: this.best, caught: this.caught, isNewBest: this.isNewBest,
-      lifeBonus: this.lifeBonus,
+      lifeBonus: this.lifeBonus, demo: this.demo,
     }
   }
 
   private emit() { this.onChange(this.snapshot()) }
 
-  start() {
+  start(demo = false) {
+    this.demo = demo
     this.items = []
     this.floats = []
     this.particles = []
@@ -194,7 +201,9 @@ export class CatchGame {
     // カゴの移動
     const left = this.keys.has('ArrowLeft') || this.keys.has('a') || this.keys.has('A')
     const right = this.keys.has('ArrowRight') || this.keys.has('d') || this.keys.has('D')
-    if (left || right) {
+    if (this.demo) {
+      this.basketX = this.planDemoX(dt)
+    } else if (left || right) {
       this.basketX += (right ? 1 : 0) * KEY_SPEED * dt - (left ? 1 : 0) * KEY_SPEED * dt
     } else if (this.targetX !== null) {
       this.basketX += (this.targetX - this.basketX) * Math.min(1, dt * 18)
@@ -242,6 +251,83 @@ export class CatchGame {
 
     if (this.timeLeft <= 0 || this.life <= 0) this.finish()
     else if (Math.ceil(this.timeLeft) !== prevSec) this.emit()
+  }
+
+  // ---- デモプレイの自動操作 ----
+  // この先 DEMO_STEPS 歩ぶん（1歩 = 1/60秒）の野菜と虫の動きを計算し、
+  // 「虫には一度も触れず、取れる野菜がいちばん多い」かごの動きを動的計画法で探す。
+  // かごの速さは、人がマウスで素早く動かしたときと同じくらい（DEMO_SPEED）にしている。
+  private planDemoX(dt: number): number {
+    const STEP = 1 / 60
+    const STEPS = 130
+    const CELL = 10 // マスの幅（px）
+    const REACH = Math.floor((DEMO_SPEED * STEP) / CELL) // 1歩で動けるマス数
+    const minX = BASKET_W / 2
+    const maxX = W - BASKET_W / 2
+    const N = Math.floor((maxX - minX) / CELL) + 1
+    const cx = (c: number) => minX + c * CELL
+    const top = BASKET_Y - BASKET_H / 2
+
+    // reward[k][c]：k歩目にかごがマス c にいるときの得点（野菜 +、虫は大きくマイナス）
+    const reward: Float32Array[] = Array.from({ length: STEPS + 1 }, () => new Float32Array(N))
+    const mark = (k: number, x: number, half: number, v: number) => {
+      const lo = Math.max(0, Math.ceil((x - half - minX) / CELL))
+      const hi = Math.min(N - 1, Math.floor((x + half - minX) / CELL))
+      for (let c = lo; c <= hi; c++) reward[k][c] += v
+    }
+    for (const it of this.items) {
+      const r = it.size * 0.4
+      const half = BASKET_W / 2 + r * 0.4
+      const bad = it.def.kind === 'bad'
+      let lastK = -1
+      let lastX = 0
+      for (let k = 1; k <= STEPS; k++) {
+        const y = it.y + it.vy * STEP * k
+        if (y - r > top + 18) break
+        if (y + r < top) continue
+        const x = it.wobble ? Math.max(30, Math.min(W - 30, it.baseX + Math.sin(y / 70) * it.wobble)) : it.x
+        if (bad) mark(k, x, half + 10, -1000) // 受け止める範囲に入っている間はずっと避ける（余裕をもって）
+        else { lastK = k; lastX = x }
+      }
+      // 野菜は「受け止める範囲を通り抜ける最後の歩」に重なっていれば必ず取れる。
+      // そこに得点を置くと、ぎりぎりまで寄せて取りに行ける。早く届く野菜ほど少しだけ高く。
+      if (!bad && lastK > 0) mark(lastK, lastX, half - 6, 100 - lastK * 0.05)
+    }
+
+    // 後ろから最大値を計算（動かないことをわずかに優先して、無駄なふらつきを抑える）
+    let next = new Float32Array(N)
+    for (let c = 0; c < N; c++) next[c] = -Math.abs(cx(c) - W / 2) * 0.002 // 迷ったら真ん中寄り
+    const choice: Int8Array[] = Array.from({ length: STEPS + 1 }, () => new Int8Array(N))
+    for (let k = STEPS; k >= 1; k--) {
+      const cur = new Float32Array(N)
+      for (let c = 0; c < N; c++) {
+        let best = -Infinity
+        let mv = 0
+        for (let d = -REACH; d <= REACH; d++) {
+          const n = c + d
+          if (n < 0 || n >= N) continue
+          const v = next[n] - Math.abs(d) * 0.002 // 動かないほどわずかに有利（ふらつき防止）
+          if (v > best) { best = v; mv = d }
+        }
+        cur[c] = reward[k][c] + best
+        choice[k][c] = mv
+      }
+      next = cur
+    }
+    // いまの位置から1歩で行けるマスのうち、いちばん良いマスへ
+    const c0 = (this.basketX - minX) / CELL
+    let bestC = Math.round(c0)
+    let bestV = -Infinity
+    for (let c = Math.max(0, Math.floor(c0) - REACH); c <= Math.min(N - 1, Math.ceil(c0) + REACH); c++) {
+      const v = next[c] - Math.abs(c - c0) * 0.002
+      if (v > bestV) { bestV = v; bestC = c }
+    }
+    // フレームの間隔が1歩より長いときは、計画の先の歩まで進める
+    let c = bestC
+    for (let k = 1, n = Math.round(dt / STEP); k < n && k <= STEPS; k++) c += choice[k][c]
+    const target = cx(Math.max(0, Math.min(N - 1, c)))
+    const maxMove = DEMO_SPEED * Math.max(dt, STEP)
+    return this.basketX + Math.max(-maxMove, Math.min(maxMove, target - this.basketX))
   }
 
   private updateEffects(dt: number) {
@@ -309,7 +395,7 @@ export class CatchGame {
       this.lifeBonus = LIFE_BONUS[Math.min(this.life, LIFE_BONUS.length - 1)]
       this.score += this.lifeBonus
     }
-    if (this.score > this.best) {
+    if (!this.demo && this.score > this.best) {
       this.best = this.score
       this.isNewBest = true
       saveBest(this.score)
