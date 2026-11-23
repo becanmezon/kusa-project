@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 横長で縦が短いPC（大学のPCなど）。画面に収めるために余白や絵を詰める */
+@custom-variant short (@media (min-width: 64rem) and (max-height: 50rem));
+
 @theme {
   --color-leaf-50: #f0f7e8;
   --color-leaf-100: #ddefcc;

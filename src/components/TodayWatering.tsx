@@ -75,18 +75,18 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
     <section className="hand-card overflow-hidden">
       {/* 今の様子がひと目でわかる挿絵（切らずに全体を収める） */}
       <div className="border-b-2 border-ink">
-        <GardenScene state={scene} night={night} className="w-full aspect-[12/5] lg:aspect-auto lg:h-56" />
+        <GardenScene state={scene} night={night} className="w-full aspect-[12/5] lg:aspect-auto lg:h-[clamp(7rem,26vh,15rem)]" />
       </div>
 
       {/* スマホは中央揃え、PCは左揃え */}
-      <div className="px-4 pt-5 pb-3 lg:p-6 text-center lg:text-left" style={{ backgroundColor: tone.bg }}>
+      <div className="px-4 pt-5 pb-3 lg:p-6 short:px-6 short:py-4 text-center lg:text-left" style={{ backgroundColor: tone.bg }}>
         <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
           {night ? <MoonIcon size={22} className="lg:w-7 lg:h-7" /> : <SunIcon size={22} className="lg:w-7 lg:h-7" />}
           <span className="text-sm lg:text-lg font-bold text-ink/70">{label}</span>
           <span className="hidden lg:block flex-1" />
           {badge}
         </div>
-        <h2 className="text-[1.875rem] lg:text-4xl font-black leading-tight mb-4 flex items-center justify-center lg:justify-start gap-2">
+        <h2 className="text-[1.875rem] lg:text-4xl short:text-3xl font-black leading-tight mb-4 short:mb-2 flex items-center justify-center lg:justify-start gap-2">
           {status === 'rain' && <UmbrellaIcon size={32} className="shrink-0 lg:w-10 lg:h-10" />}
           {headline}
         </h2>
@@ -94,7 +94,7 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
         {/* 未対応：担当者と記録ボタン */}
         {status === null && (
           <>
-            <p className="text-base lg:text-xl mb-4">
+            <p className="text-base lg:text-xl mb-4 short:mb-3">
               {/* スマホは「今日の担当は」のあとで改行（モックに合わせる） */}
               <span className="text-ink/70">今日の担当は</span>
               <br className="lg:hidden" />
@@ -104,28 +104,28 @@ function SlotCard({ userName, slot, watering, todayShift, onWater, onRain, onUnd
                 <span className="text-ink/70"> さん</span>
               )}
             </p>
-            <label className="block mb-4">
+            <label className="block mb-4 short:mb-3">
               <span className="sr-only">メモ（任意）</span>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="メモ（任意）例：代わりにやってくれた人"
                 rows={1}
-                className="w-full border-2 border-ink/25 rounded-xl px-4 py-2 lg:py-3 text-sm lg:text-base bg-white/70 placeholder:text-soil-400 text-left focus:outline-none focus:border-ink resize-none"
+                className="w-full border-2 border-ink/25 rounded-xl px-4 py-2 lg:py-3 short:py-2 text-sm lg:text-base bg-white/70 placeholder:text-soil-400 text-left focus:outline-none focus:border-ink resize-none"
               />
             </label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => wrap(() => onWater(note, slot).then(() => setNote('')))}
                 disabled={loading}
-                className="hand-btn bg-grass hover:bg-grass-dark font-black py-3 lg:py-5 flex items-center justify-center gap-2 text-base lg:text-2xl disabled:opacity-50"
+                className="hand-btn bg-grass hover:bg-grass-dark font-black py-3 lg:py-5 short:py-3 flex items-center justify-center gap-2 text-base lg:text-2xl short:text-xl disabled:opacity-50"
               >
                 <WateringCanIcon size={26} className="lg:w-9 lg:h-9" /> 水やりした
               </button>
               <button
                 onClick={() => wrap(() => onRain(note, slot).then(() => setNote('')))}
                 disabled={loading}
-                className="hand-btn bg-sky hover:bg-sky-dark font-black py-3 lg:py-5 flex items-center justify-center gap-2 text-base lg:text-2xl disabled:opacity-50"
+                className="hand-btn bg-sky hover:bg-sky-dark font-black py-3 lg:py-5 short:py-3 flex items-center justify-center gap-2 text-base lg:text-2xl short:text-xl disabled:opacity-50"
               >
                 <RainCloudIcon size={26} className="lg:w-9 lg:h-9" /> 雨だった
               </button>
@@ -217,15 +217,15 @@ export function TodayWatering({
   const showTomorrowEvening = isDualSlotDate(tomorrowStr)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 short:space-y-3">
 
       {/* 日付ヘッダー（記録する人の名前は画面上部のヘッダーに表示） */}
-      <div className="px-1">
+      <div className="px-1 lg:flex lg:items-center lg:gap-4">
         {/* マスキングテープを貼ったような見出し */}
-        <p className="inline-block -rotate-2 bg-sun/80 border-x-2 border-dashed border-ink/25 px-3 py-1 text-sm lg:text-lg font-black tracking-wider">
+        <p className="inline-block -rotate-2 bg-sun/80 border-x-2 border-dashed border-ink/25 px-3 py-1 text-sm lg:text-lg short:text-base font-black tracking-wider">
           今日の水やり
         </p>
-        <p className="text-3xl lg:text-5xl font-black mt-2 tracking-tight tabular-nums">{formatDate(todayStr)}</p>
+        <p className="text-3xl lg:text-5xl short:text-4xl font-black mt-2 lg:mt-0 tracking-tight tabular-nums">{formatDate(todayStr)}</p>
       </div>
 
       <SlotCard

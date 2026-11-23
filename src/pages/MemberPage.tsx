@@ -526,7 +526,7 @@ export function MemberPage({ variant }: { variant?: 'classic' } = {}) {
       )}
 
       {/* ヘッダー */}
-      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 lg:py-3 flex items-center justify-between sticky top-0 z-30">
+      <header className="bg-sky border-b-2 border-ink px-4 lg:px-8 py-2.5 lg:py-3 short:py-2 flex items-center justify-between sticky top-0 z-30">
         <button
           type="button"
           onClick={() => { changeTab('today'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
@@ -588,7 +588,7 @@ export function MemberPage({ variant }: { variant?: 'classic' } = {}) {
       )}
 
       {/* メインコンテンツ */}
-      <main className="flex-1 px-4 py-4 pb-24 lg:px-[12vw] lg:py-6 lg:pb-8 overflow-y-auto">
+      <main className="flex-1 px-4 py-4 pb-24 lg:px-[max(2rem,calc((100vw-80rem)/2))] lg:py-6 lg:pb-8 short:py-3 short:pb-4 overflow-y-auto">
         {tab === 'today' && (
           <div className="lg:grid lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
           <div>
@@ -617,7 +617,7 @@ export function MemberPage({ variant }: { variant?: 'classic' } = {}) {
           </div>
           {/* PCでは今日の画面の右に履歴を並べて表示 */}
           {isDesktop && (
-            <div className="h-[calc(100vh-7rem)]">
+            <div className="h-[calc(100vh-7rem)] short:h-[calc(100vh-5.75rem)]">
               <WateringHistory
                 fill
                 history={buildWateringHistory(viewWaterings, historyPastDays + 1)}
