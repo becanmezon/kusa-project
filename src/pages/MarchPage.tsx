@@ -49,14 +49,14 @@ export function MarchPage() {
         </Link>
         <h1 className="font-black text-base sm:text-lg whitespace-nowrap">めばえ大行進<span className="ml-1.5 text-xs font-bold text-ink/70">試作版</span></h1>
         <div className="flex items-center gap-1 text-sm font-bold whitespace-nowrap tabular-nums">
-          <Trophy size={16} /> {s?.best ?? 0}
+          <Trophy size={16} /> {(s?.best ?? 0).toLocaleString('ja-JP')}
         </div>
       </header>
 
       <main className="flex-1 min-h-0 flex flex-col items-center px-3 py-2 gap-2">
         {/* 上の段：点数・進み具合・一時停止 */}
         <div className="w-full max-w-[min(30rem,calc((100dvh-8.5rem)*0.6))] flex items-center gap-3">
-          <span className="font-black text-xl tabular-nums">{s?.score ?? 0}<span className="text-xs ml-0.5">点</span></span>
+          <span className="font-black text-xl tabular-nums">{(s?.score ?? 0).toLocaleString('ja-JP')}<span className="text-xs ml-0.5">点</span></span>
           <div className="flex-1 h-3 rounded-full border-2 border-ink bg-white overflow-hidden" aria-label="ゴールまでの進み具合">
             <div
               className="h-full"
@@ -88,11 +88,11 @@ export function MarchPage() {
             <div className={overlay}>
               <h2 className="text-2xl font-black mb-3">めばえ大行進</h2>
               <ul className="text-left text-sm flex flex-col gap-1.5 mb-4">
-                <li><b className="px-1.5 rounded border-2 border-ink" style={{ backgroundColor: '#5AA9E6' }}>＋</b> 青いゲートをくぐると仲間が増える</li>
-                <li><b className="px-1.5 rounded border-2 border-ink" style={{ backgroundColor: '#F4895F' }}>−</b> 赤いゲートは仲間が減る</li>
-                <li>ゲートを水で撃つと、数字が上がる</li>
-                <li>虫にぶつかると仲間が減る。0人になったらおしまい</li>
-                <li>最後のボスを追い払えばクリア</li>
+                <li><b className="px-1.5 rounded border-2 border-ink" style={{ backgroundColor: '#F6C445' }}>×</b> 黄色いゲートで仲間が何倍にも増える</li>
+                <li><b className="px-1.5 rounded border-2 border-ink" style={{ backgroundColor: '#5AA9E6' }}>＋</b> 青いゲートで増える</li>
+                <li><b className="px-1.5 rounded border-2 border-ink" style={{ backgroundColor: '#F4895F' }}>÷</b> 赤いゲートは減る</li>
+                <li>虫の群れにぶつかると、群れの数だけ仲間が減る。撃って小さくするか、よけよう</li>
+                <li>最後のボスは、投げてくる虫をよけながら撃ちまくれ！</li>
               </ul>
               <p className="text-xs text-ink/70 mb-4">操作：指やマウスを左右に動かす（← → キーでもOK）</p>
               <StartButton onClick={() => gameRef.current?.start()} label="スタート" />
@@ -106,9 +106,10 @@ export function MarchPage() {
           )}
           {s?.phase === 'over' && (
             <div className={overlay}>
-              <p className="text-sm text-ink/70 mb-1">{s.win ? 'ボスを追い払った！' : '仲間がいなくなった…'}</p>
-              <h2 className="text-5xl font-black tabular-nums mb-2">{s.score}<span className="text-xl ml-1">点</span></h2>
-              {s.win && <p className="text-sm font-bold mb-1">残った仲間 {s.count}人（1人50点）＋クリア1000点</p>}
+              <p className="text-sm text-ink/70 mb-1">{s.win ? (s.bossLeft >= 0 && s.bossLeft < 0.1 ? 'ギリギリ勝利！！' : 'ボスを追い払った！') : '仲間がいなくなった…'}</p>
+              <h2 className="text-5xl font-black tabular-nums mb-2">{s.score.toLocaleString('ja-JP')}<span className="text-xl ml-1">点</span></h2>
+              <p className="text-sm font-bold mb-1">いちばん増えたとき {s.peak.toLocaleString('ja-JP')}人</p>
+              {s.win && <p className="text-sm mb-1">残った仲間 {s.count.toLocaleString('ja-JP')}人（1人10点）＋クリア1000点</p>}
               {s.isNewBest && <p className="text-sm font-black mb-1" style={{ color: '#d9603a' }}>自己ベスト更新！</p>}
               <div className="mt-3"><StartButton onClick={() => gameRef.current?.start()} label="もう一回" icon /></div>
             </div>
