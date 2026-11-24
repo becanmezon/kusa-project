@@ -7,6 +7,7 @@ import { RouteError } from './pages/RouteError'
 const AdminPage   = lazy(() => import('./pages/AdminPage').then(m => ({ default: m.AdminPage })))
 const DisplayPage = lazy(() => import('./pages/DisplayPage').then(m => ({ default: m.DisplayPage })))
 const CatchPage   = lazy(() => import('./pages/CatchPage').then(m => ({ default: m.CatchPage })))
+const MarchPage   = lazy(() => import('./pages/MarchPage').then(m => ({ default: m.MarchPage })))
 const SummaryPage = lazy(() => import('./pages/SummaryPage').then(m => ({ default: m.SummaryPage })))
 
 function Loading() {
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: '/admin',   element: page(<AdminPage />) },
       { path: '/display', element: page(<DisplayPage />) },
       { path: '/catch',   element: page(<CatchPage />) },
+      { path: '/march',   element: page(<MarchPage />) },
       { path: '/summary', element: page(<SummaryPage />) },
       { path: '/classic', element: <MemberPage variant="classic" /> },
       // 以前あった紙の当番表デザインのURLは、旧デザインへ送る
